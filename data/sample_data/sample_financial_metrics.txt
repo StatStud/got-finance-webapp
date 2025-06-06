@@ -1,0 +1,86 @@
+Financial Metrics Comparison - Acquisition Target Analysis
+
+TARGET COMPANY A - RetailCorp
+Revenue: $1.2B (FY2023)
+Net Income: $95M  
+Total Assets: $850M
+Total Equity: $320M
+Current Assets: $240M
+Current Liabilities: $180M
+Total Debt: $430M
+
+Key Ratios:
+ROE: 29.7%
+ROA: 11.2%
+Debt-to-Equity: 1.34
+Current Ratio: 1.33
+Profit Margin: 7.9%
+Asset Turnover: 1.41
+
+TARGET COMPANY B - ManufacturingPlus
+Revenue: $2.1B (FY2023)  
+Net Income: $147M
+Total Assets: $1.8B
+Total Equity: $720M
+Current Assets: $580M
+Current Liabilities: $420M
+Total Debt: $980M
+
+Key Ratios:
+ROE: 20.4%
+ROA: 8.2%
+Debt-to-Equity: 1.36
+Current Ratio: 1.38
+Profit Margin: 7.0%
+Asset Turnover: 1.17
+
+TARGET COMPANY C - TechServices
+Revenue: $680M (FY2023)
+Net Income: $85M
+Total Assets: $520M  
+Total Equity: $380M
+Current Assets: $195M
+Current Liabilities: $95M
+Total Debt: $140M
+
+Key Ratios:
+ROE: 22.4%
+ROA: 16.3%
+Debt-to-Equity: 0.37
+Current Ratio: 2.05
+Profit Margin: 12.5%
+Asset Turnover: 1.31
+
+TARGET COMPANY D - EnergyDynamics
+Revenue: $3.2B (FY2023)
+Net Income: $185M
+Total Assets: $4.1B
+Total Equity: $1.2B
+Current Assets: $420M
+Current Liabilities: $380M
+Total Debt: $2.7B
+
+Key Ratios:
+ROE: 15.4%
+ROA: 4.5%
+Debt-to-Equity: 2.25
+Current Ratio: 1.11
+Profit Margin: 5.8%
+Asset Turnover: 0.78
+
+TARGET COMPANY E - HealthTech Innovations
+Revenue: $450M (FY2023)
+Net Income: $67M
+Total Assets: $380M
+Total Equity: $290M
+Current Assets: $125M
+Current Liabilities: $65M
+Total Debt: $90M
+
+Key Ratios:
+ROE: 23.1%
+ROA: 17.6%
+Debt-to-Equity: 0.31
+Current Ratio: 1.92
+Profit Margin: 14.9%
+Asset Turnover: 1.18

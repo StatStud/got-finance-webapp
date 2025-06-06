@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}GoT Finance Analytics - Home{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-lg-12">
+            <div class="hero-section text-center py-5 bg-gradient-primary rounded-3 text-white">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="fas fa-project-diagram me-3"></i>
+                    Graph of Thoughts Finance Analytics
+                </h1>
+                <p class="lead mb-4">
+                    Sophisticated financial reasoning using advanced AI workflows.<br>
+                    Transform complex financial analysis with structured thinking patterns.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('demo') }}" class="btn btn-light btn-lg">
+                        <i class="fas fa-play-circle me-2"></i>Try Demo
+                    </a>
+                    <a href="{{ url_for('advanced') }}" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-cogs me-2"></i>Advanced Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Powerful Financial Analysis Workflows</h2>
+            <p class="text-center text-muted mb-5">
+                Leverage Graph of Thoughts to solve complex financial problems with structured reasoning
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Risk Analysis -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon bg-danger bg-opacity-10 text-danger rounded-3 p-3 me-3">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">Risk Analysis & Portfolio Management</h5>
+                            <span class="badge bg-danger bg-opacity-10 text-danger">High Impact</span>
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        Analyze risk factors across multiple 10-K filings, extract risk mentions, 
+                        and rank by severity using sophisticated aggregation techniques.
+                    </p>
+                    <div class="example-box bg-light p-3 rounded mb-3">
+                        <strong>Example:</strong> "Analyze risk factors across 50 company 10-K filings and rank by severity"
+                    </div>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Multi-document risk extraction</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Severity scoring and ranking</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Category-based aggregation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Processing -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
+                            <i class="fas fa-file-text fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">Financial Document Processing</h5>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">Time Saver</span>
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        Merge multiple earnings call transcripts, identify recurring themes, 
+                        and track trends across reporting periods.
+                    </p>
+                    <div class="example-box bg-light p-3 rounded mb-3">
+                        <strong>Example:</strong> "Merge 12 quarterly earnings calls and identify recurring themes"
+                    </div>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Theme extraction and frequency analysis</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Trend identification across periods</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Intelligent document merging</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regulatory Compliance -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
+                            <i class="fas fa-balance-scale fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">Regulatory Compliance Analysis</h5>
+                            <span class="badge bg-warning bg-opacity-10 text-warning">Critical</span>
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        Analyze regulatory requirements across jurisdictions and identify 
+                        conflicts or compliance gaps systematically.
+                    </p>
+                    <div class="example-box bg-light p-3 rounded mb-3">
+                        <strong>Example:</strong> "Analyze Basel III requirements across 5 jurisdictions and identify conflicts"
+                    </div>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Multi-jurisdiction requirement extraction</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Conflict detection and resolution</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Compliance gap analysis</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Metrics -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-1">Financial Metrics Comparison</h5>
+                            <span class="badge bg-success bg-opacity-10 text-success">Data Driven</span>
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        Compare financial metrics across acquisition targets, 
+                        flag inconsistencies, and accelerate due diligence processes.
+                    </p>
+                    <div class="example-box bg-light p-3 rounded mb-3">
+                        <strong>Example:</strong> "Compare metrics across 20 acquisition targets and flag inconsistencies"
+                    </div>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="fas fa-check text-success me-2"></i>Automated financial ratio analysis</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Peer comparison and benchmarking</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Investment attractiveness scoring</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5">How Graph of Thoughts Works</h2>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div class="step-icon bg-primary text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="h3 mb-0">1</span>
+                </div>
+                <h5>Split & Generate</h5>
+                <p class="text-muted">Break complex problems into manageable parts and generate multiple reasoning paths</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div class="step-icon bg-success text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="h3 mb-0">2</span>
+                </div>
+                <h5>Score & Select</h5>
+                <p class="text-muted">Evaluate multiple solutions and keep only the highest-quality reasoning paths</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div class="step-icon bg-warning text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="h3 mb-0">3</span>
+                </div>
+                <h5>Aggregate & Merge</h5>
+                <p class="text-muted">Combine insights from different paths to create comprehensive solutions</p>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="text-center">
+                <div class="step-icon bg-danger text-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <span class="h3 mb-0">4</span>
+                </div>
+                <h5>Validate & Improve</h5>
+                <p class="text-muted">Verify results and iteratively improve the solution quality</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Stack -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body text-center py-5">
+                    <h3 class="mb-4">Powered by Advanced AI Technology</h3>
+                    <div class="row align-items-center">
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-brain fa-3x text-primary mb-2"></i>
+                            <h6>Graph of Thoughts</h6>
+                            <small class="text-muted">Sophisticated reasoning framework</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-microchip fa-3x text-success mb-2"></i>
+                            <h6>Cerebras API</h6>
+                            <small class="text-muted">High-performance language models</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-code fa-3x text-warning mb-2"></i>
+                            <h6>Flask Backend</h6>
+                            <small class="text-muted">Robust web application framework</small>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <i class="fas fa-chart-bar fa-3x text-info mb-2"></i>
+                            <h6>Real-time Analytics</h6>
+                            <small class="text-muted">Performance and cost tracking</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <h3 class="mb-3">Ready to Transform Your Financial Analysis?</h3>
+                <p class="lead text-muted mb-4">
+                    Experience the power of structured AI reasoning for complex financial problems
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ url_for('demo') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-rocket me-2"></i>Start Demo
+                    </a>
+                    <a href="/api/workflows" class="btn btn-outline-primary btn-lg" target="_blank">
+                        <i class="fas fa-book me-2"></i>View API
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Add hover effects for cards
+    document.querySelectorAll('.hover-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+{% endblock %}

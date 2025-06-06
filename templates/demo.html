@@ -1,0 +1,1143 @@
+{% extends "base.html" %}
+
+{% block title %}GoT Finance Analytics - Interactive Demo{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+<style>
+.workflow-card {
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.workflow-card:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+.workflow-card.active {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+.execution-graph {
+    min-height: 300px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+.thought-node {
+    background: #fff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 4px;
+    font-size: 12px;
+}
+.sticky-top {
+    position: sticky;
+    top: 100px;
+    z-index: 100;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar for Workflow Selection -->
+        <div class="col-lg-3 col-md-4">
+            <div class="card sticky-top">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>
+                        Select Workflow
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="workflow-selection">
+                        <div class="workflow-item" data-workflow="risk_analysis">
+                            <div class="d-flex align-items-center p-3 rounded mb-2 workflow-card">
+                                <i class="fas fa-exclamation-triangle text-danger me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Risk Analysis</h6>
+                                    <small class="text-muted">Analyze and rank risk factors</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="workflow-item" data-workflow="document_merge">
+                            <div class="d-flex align-items-center p-3 rounded mb-2 workflow-card">
+                                <i class="fas fa-file-text text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Document Merge</h6>
+                                    <small class="text-muted">Process and merge documents</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="workflow-item" data-workflow="compliance_analysis">
+                            <div class="d-flex align-items-center p-3 rounded mb-2 workflow-card">
+                                <i class="fas fa-balance-scale text-warning me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Compliance Analysis</h6>
+                                    <small class="text-muted">Regulatory requirements</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="workflow-item" data-workflow="financial_metrics">
+                            <div class="d-flex align-items-center p-3 rounded mb-2 workflow-card">
+                                <i class="fas fa-chart-line text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Financial Metrics</h6>
+                                    <small class="text-muted">Compare financial data</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Settings -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="mb-3">Quick Settings</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Reasoning Depth</label>
+                            <select class="form-select form-select-sm" id="reasoning-depth">
+                                <option value="simple">Simple (IO)</option>
+                                <option value="moderate" selected>Moderate (CoT)</option>
+                                <option value="complex">Complex (ToT)</option>
+                                <option value="advanced">Advanced (GoT)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Max Cost ($)</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="max-cost" value="5.00" step="0.50" min="1.00" max="50.00">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-lg-9 col-md-8">
+            <!-- Workflow Configuration Panel -->
+            <div class="card mb-4" id="workflow-config">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" id="workflow-title">
+                        <i class="fas fa-cog me-2"></i>
+                        Select a workflow to begin
+                    </h5>
+                    <div class="workflow-status">
+                        <span class="badge bg-secondary" id="workflow-status">Ready</span>
+                    </div>
+                </div>
+                <div class="card-body" id="workflow-content">
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-arrow-left fa-3x mb-3"></i>
+                        <h5>Choose a workflow from the sidebar to get started</h5>
+                        <p>Each workflow demonstrates different Graph of Thoughts reasoning patterns</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="card" id="results-panel" style="display: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Execution Results
+                    </h5>
+                    <div class="results-actions">
+                        <button class="btn btn-sm btn-outline-primary" id="export-results">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="clear-results">
+                            <i class="fas fa-trash me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Execution Summary -->
+                    <div class="row mb-4" id="execution-summary">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-primary mb-1" id="execution-time">--</h4>
+                                <small class="text-muted">Execution Time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-success mb-1" id="execution-cost">--</h4>
+                                <small class="text-muted">Total Cost</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-info mb-1" id="thought-count">--</h4>
+                                <small class="text-muted">Thoughts Generated</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-warning mb-1" id="quality-score">--</h4>
+                                <small class="text-muted">Quality Score</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Tabs -->
+                    <ul class="nav nav-tabs" id="results-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="output-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#output-content" type="button" role="tab">
+                                <i class="fas fa-file-alt me-1"></i>Output
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="graph-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#graph-content" type="button" role="tab">
+                                <i class="fas fa-project-diagram me-1"></i>Execution Graph
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#metrics-content" type="button" role="tab">
+                                <i class="fas fa-chart-line me-1"></i>Performance
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="json-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#json-content" type="button" role="tab">
+                                <i class="fas fa-code me-1"></i>Raw JSON
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content mt-3" id="results-tab-content">
+                        <!-- Output Tab -->
+                        <div class="tab-pane fade show active" id="output-content" role="tabpanel">
+                            <div id="formatted-output">
+                                <div class="text-center py-4 text-muted">
+                                    <i class="fas fa-hourglass-half fa-2x mb-2"></i>
+                                    <p>Results will appear here after execution</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Execution Graph Tab -->
+                        <div class="tab-pane fade" id="graph-content" role="tabpanel">
+                            <div class="execution-graph d-flex align-items-center justify-content-center" id="execution-graph">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-project-diagram fa-3x mb-3"></i>
+                                    <h5>Execution Graph</h5>
+                                    <p>Visual representation of the GoT reasoning process will appear here</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance Metrics Tab -->
+                        <div class="tab-pane fade" id="metrics-content" role="tabpanel">
+                            <div id="performance-metrics">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <canvas id="cost-chart" width="400" height="200"></canvas>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <canvas id="quality-chart" width="400" height="200"></canvas>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h6>Detailed Metrics</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm" id="metrics-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Metric</th>
+                                                    <th>Value</th>
+                                                    <th>Unit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="metrics-tbody">
+                                                <tr>
+                                                    <td colspan="3" class="text-center text-muted">No metrics available</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Raw JSON Tab -->
+                        <div class="tab-pane fade" id="json-content" role="tabpanel">
+                            <pre><code class="language-json" id="raw-json">// Raw execution results will appear here</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let currentWorkflow = null;
+let executionResults = null;
+
+// Workflow configurations
+const workflowConfigs = {
+    risk_analysis: {
+        title: 'Risk Analysis & Portfolio Management',
+        icon: 'fas fa-exclamation-triangle text-danger',
+        description: 'Analyze risk factors across multiple documents and rank by severity using GoT aggregation',
+        inputType: 'documents',
+        example: 'Upload company 10-K filings for comprehensive risk assessment',
+        sampleData: [
+            'Sample Company A faces significant cybersecurity risks due to increasing digital operations...',
+            'Company B operations are subject to regulatory changes in multiple jurisdictions...',
+            'Market volatility and supply chain disruptions pose material risks to Company C...'
+        ]
+    },
+    document_merge: {
+        title: 'Financial Document Processing',
+        icon: 'fas fa-file-text text-primary',
+        description: 'Merge multiple financial documents and identify recurring themes using sophisticated parsing',
+        inputType: 'documents',
+        example: 'Process quarterly earnings call transcripts',
+        sampleData: [
+            'Q1 Earnings Call: Revenue growth of 15% driven by digital transformation...',
+            'Q2 Earnings Call: Continued strong performance with margin expansion...',
+            'Q3 Earnings Call: Supply chain challenges offset by operational improvements...'
+        ]
+    },
+    compliance_analysis: {
+        title: 'Regulatory Compliance Analysis',
+        icon: 'fas fa-balance-scale text-warning',
+        description: 'Analyze regulatory requirements across jurisdictions and identify conflicts',
+        inputType: 'text',
+        example: 'Compare Basel III requirements across multiple jurisdictions',
+        sampleData: [
+            'EU Basel III: Banks must maintain a minimum CET1 ratio of 4.5%...',
+            'US Basel III: Systemically important banks require additional capital buffers...',
+            'UK Basel III: Implementation includes specific liquidity coverage requirements...'
+        ]
+    },
+    financial_metrics: {
+        title: 'Financial Metrics Comparison',
+        icon: 'fas fa-chart-line text-success',
+        description: 'Compare financial metrics across multiple targets using GoT ranking',
+        inputType: 'data',
+        example: 'Due diligence analysis of acquisition targets',
+        sampleData: [
+            'Company A: Revenue $500M, Net Income $50M, ROE 15%, Debt/Equity 1.2',
+            'Company B: Revenue $750M, Net Income $60M, ROE 12%, Debt/Equity 1.8',
+            'Company C: Revenue $300M, Net Income $45M, ROE 18%, Debt/Equity 0.9'
+        ]
+    }
+};
+
+// Initialize workflow selection
+document.addEventListener('DOMContentLoaded', function() {
+    initializeWorkflowSelection();
+    initializeQuickSettings();
+});
+
+function initializeWorkflowSelection() {
+    document.querySelectorAll('.workflow-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const workflowId = this.dataset.workflow;
+            selectWorkflow(workflowId);
+        });
+    });
+}
+
+function initializeQuickSettings() {
+    document.getElementById('reasoning-depth').addEventListener('change', updateReasoningDepth);
+    document.getElementById('max-cost').addEventListener('change', updateMaxCost);
+}
+
+function selectWorkflow(workflowId) {
+    currentWorkflow = workflowId;
+    const config = workflowConfigs[workflowId];
+    
+    // Update UI
+    document.querySelectorAll('.workflow-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    document.querySelector(`[data-workflow="${workflowId}"] .workflow-card`).classList.add('active');
+    
+    // Update workflow panel
+    document.getElementById('workflow-title').innerHTML = `
+        <i class="${config.icon} me-2"></i>
+        ${config.title}
+    `;
+    document.getElementById('workflow-status').textContent = 'Configured';
+    document.getElementById('workflow-status').className = 'badge bg-primary';
+    
+    // Render workflow configuration
+    renderWorkflowConfig(config);
+}
+
+function renderWorkflowConfig(config) {
+    const content = document.getElementById('workflow-content');
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-lg-8">
+                <h6 class="mb-3">${config.description}</h6>
+                
+                <div class="mb-4">
+                    <label class="form-label">Input Data</label>
+                    <textarea class="form-control" id="input-data" rows="6" 
+                              placeholder="Enter your ${config.inputType} here or use sample data...">${config.sampleData.join('\n\n')}</textarea>
+                    <div class="form-text">
+                        Example: ${config.example}
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="executeWorkflow()">
+                        <i class="fas fa-play me-2"></i>
+                        Execute Workflow
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="loadSampleData()">
+                        <i class="fas fa-database me-2"></i>
+                        Load Sample Data
+                    </button>
+                    <button class="btn btn-outline-info" onclick="estimateCost()">
+                        <i class="fas fa-calculator me-2"></i>
+                        Estimate Cost
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">GoT Configuration</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Reasoning Method</label>
+                            <select class="form-select form-select-sm" id="reasoning-method">
+                                <option value="got">Graph of Thoughts (GoT)</option>
+                                <option value="tot">Tree of Thoughts (ToT)</option>
+                                <option value="cot">Chain of Thoughts (CoT)</option>
+                                <option value="io">Input-Output (IO)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Branches per Step</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="branches" value="3" min="1" max="10">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Max Iterations</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="max-iterations" value="5" min="1" max="20">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-validation" checked>
+                                <label class="form-check-label small" for="enable-validation">
+                                    Enable Validation
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-improvement" checked>
+                                <label class="form-check-label small" for="enable-improvement">
+                                    Enable Improvement
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function loadSampleData() {
+    if (currentWorkflow) {
+        const config = workflowConfigs[currentWorkflow];
+        document.getElementById('input-data').value = config.sampleData.join('\n\n');
+        showAlert('Sample data loaded successfully', 'success');
+    }
+}
+
+function estimateCost() {
+    const inputData = document.getElementById('input-data').value;
+    const method = document.getElementById('reasoning-method').value;
+    const branches = parseInt(document.getElementById('branches').value);
+    const iterations = parseInt(document.getElementById('max-iterations').value);
+    
+    // Simple cost estimation
+    const baseTokens = inputData.length * 0.75; // Rough token estimation
+    const multiplier = {
+        'io': 1,
+        'cot': 2,
+        'tot': branches * iterations,
+        'got': branches * iterations * 1.5
+    };
+    
+    const estimatedTokens = baseTokens * multiplier[method];
+    const estimatedCost = estimatedTokens * 0.0001; // Rough cost per token
+    
+    showAlert(`Estimated cost: ${formatCurrency(estimatedCost)} (${Math.round(estimatedTokens)} tokens)`, 'info');
+}
+
+async function executeWorkflow() {
+    if (!currentWorkflow) {
+        showAlert('Please select a workflow first', 'warning');
+        return;
+    }
+    
+    const inputData = document.getElementById('input-data').value.trim();
+    if (!inputData) {
+        showAlert('Please provide input data', 'warning');
+        return;
+    }
+    
+    // Prepare execution parameters
+    const executionParams = {
+        workflow_id: currentWorkflow,
+        inputs: prepareInputs(),
+        config: getWorkflowConfig()
+    };
+    
+    try {
+        // Show loading state
+        showLoading('Executing Graph of Thoughts workflow...', 'This may take several minutes for complex reasoning');
+        document.getElementById('workflow-status').textContent = 'Executing';
+        document.getElementById('workflow-status').className = 'badge bg-warning';
+        
+        // Execute workflow
+        const response = await axios.post('/api/execute', executionParams);
+        
+        if (response.data.error) {
+            throw new Error(response.data.error);
+        }
+        
+        // Display results
+        executionResults = response.data;
+        displayResults(response.data);
+        
+        // Update status
+        document.getElementById('workflow-status').textContent = 'Completed';
+        document.getElementById('workflow-status').className = 'badge bg-success';
+        
+        showAlert('Workflow executed successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Execution error:', error);
+        showAlert(`Execution failed: ${error.message}`, 'danger');
+        
+        document.getElementById('workflow-status').textContent = 'Failed';
+        document.getElementById('workflow-status').className = 'badge bg-danger';
+    } finally {
+        hideLoading();
+    }
+}
+
+function prepareInputs() {
+    const inputData = document.getElementById('input-data').value;
+    const config = workflowConfigs[currentWorkflow];
+    
+    if (config.inputType === 'documents') {
+        return {
+            documents: inputData.split('\n\n').filter(doc => doc.trim())
+        };
+    } else if (config.inputType === 'text') {
+        return {
+            regulatory_texts: inputData.split('\n\n').filter(text => text.trim())
+        };
+    } else if (config.inputType === 'data') {
+        return {
+            financial_data: inputData.split('\n').filter(line => line.trim())
+        };
+    }
+    
+    return { data: inputData };
+}
+
+function getWorkflowConfig() {
+    return {
+        reasoning_method: document.getElementById('reasoning-method').value,
+        branches: parseInt(document.getElementById('branches').value),
+        max_iterations: parseInt(document.getElementById('max-iterations').value),
+        enable_validation: document.getElementById('enable-validation').checked,
+        enable_improvement: document.getElementById('enable-improvement').checked,
+        max_cost: parseFloat(document.getElementById('max-cost').value)
+    };
+}
+
+function displayResults(results) {
+    // Show results panel
+    document.getElementById('results-panel').style.display = 'block';
+    
+    // Update summary metrics
+    document.getElementById('execution-time').textContent = formatDuration(results.execution_time || 0);
+    document.getElementById('execution-cost').textContent = results.cost || '$0.00';
+    document.getElementById('thought-count').textContent = results.results?.thought_count || 0;
+    document.getElementById('quality-score').textContent = calculateQualityScore(results) + '/10';
+    
+    // Update output tab
+    displayFormattedOutput(results);
+    
+    // Update raw JSON tab
+    document.getElementById('raw-json').textContent = JSON.stringify(results, null, 2);
+    
+    // Re-highlight code
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
+    
+    // Update execution graph
+    displayExecutionGraph(results);
+    
+    // Update performance metrics
+    updatePerformanceMetrics(results);
+}
+
+function displayFormattedOutput(results) {
+    const outputDiv = document.getElementById('formatted-output');
+    const workflowType = results.workflow;
+    const data = results.results;
+    
+    let formattedHTML = '';
+    
+    if (workflowType === 'risk_analysis') {
+        formattedHTML = formatRiskAnalysisResults(data);
+    } else if (workflowType === 'document_merge') {
+        formattedHTML = formatDocumentMergeResults(data);
+    } else if (workflowType === 'compliance_analysis') {
+        formattedHTML = formatComplianceResults(data);
+    } else if (workflowType === 'financial_metrics') {
+        formattedHTML = formatFinancialMetricsResults(data);
+    } else {
+        formattedHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+    }
+    
+    outputDiv.innerHTML = formattedHTML;
+}
+
+function formatRiskAnalysisResults(data) {
+    if (data.error) {
+        return `<div class="alert alert-danger">${data.error}</div>`;
+    }
+    
+    const risks = data.risk_factors || [];
+    const rankings = data.ranked_risks || [];
+    
+    let html = `
+        <div class="mb-4">
+            <h6>Risk Analysis Summary</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-danger">${risks.length}</h4>
+                            <small>Risk Factors Identified</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-warning">${calculateAverageSeverity(risks).toFixed(1)}</h4>
+                            <small>Average Severity</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h6>Top Risk Factors</h6>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Risk Factor</th>
+                        <th>Category</th>
+                        <th>Severity</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    risks.slice(0, 10).forEach((risk, index) => {
+        const severityClass = risk.severity >= 8 ? 'danger' : risk.severity >= 6 ? 'warning' : 'info';
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${risk.factor || 'Unknown'}</td>
+                <td><span class="badge bg-secondary">${risk.category || 'Other'}</span></td>
+                <td><span class="badge bg-${severityClass}">${risk.severity || 0}/10</span></td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    return html;
+}
+
+function formatDocumentMergeResults(data) {
+    if (data.error) {
+        return `<div class="alert alert-danger">${data.error}</div>`;
+    }
+    
+    const themes = data.themes || [];
+    const mergedDoc = data.merged_document || '';
+    
+    let html = `
+        <div class="mb-4">
+            <h6>Document Merge Summary</h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-primary">${themes.length}</h4>
+                            <small>Themes Identified</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-info">${mergedDoc.length}</h4>
+                            <small>Characters in Merged Document</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h6>Key Themes</h6>
+        <div class="row mb-4">
+    `;
+    
+    themes.slice(0, 6).forEach(theme => {
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">${theme.theme || 'Unknown Theme'}</h6>
+                        <p class="small text-muted">Frequency: ${theme.frequency || 0} mentions</p>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar" style="width: ${Math.min((theme.frequency || 0) * 10, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        
+        <h6>Merged Document Preview</h6>
+        <div class="card bg-light">
+            <div class="card-body">
+                <p class="mb-0">${mergedDoc.substring(0, 500)}${mergedDoc.length > 500 ? '...' : ''}</p>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+function formatComplianceResults(data) {
+    if (data.error) {
+        return `<div class="alert alert-danger">${data.error}</div>`;
+    }
+    
+    const requirements = data.requirements || [];
+    const conflicts = data.conflicts || [];
+    
+    let html = `
+        <div class="mb-4">
+            <h6>Compliance Analysis Summary</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-info">${requirements.length}</h4>
+                            <small>Requirements Found</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-warning">${conflicts.length}</h4>
+                            <small>Conflicts Identified</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-success">${calculateComplianceScore(data)}%</h4>
+                            <small>Compliance Score</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h6>Critical Conflicts</h6>
+        <div class="mb-4">
+    `;
+    
+    conflicts.filter(c => c.severity === 'high').slice(0, 5).forEach(conflict => {
+        html += `
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">${conflict.description || 'Unknown Conflict'}</h6>
+                <p class="mb-1">Jurisdictions: ${(conflict.jurisdictions || []).join(', ')}</p>
+                <small>Recommendation: ${conflict.recommendation || 'Review required'}</small>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        
+        <h6>Requirements Summary</h6>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Requirement</th>
+                        <th>Deadline</th>
+                        <th>Jurisdiction</th>
+                        <th>Penalty</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    requirements.slice(0, 10).forEach(req => {
+        html += `
+            <tr>
+                <td>${(req.description || '').substring(0, 100)}${req.description && req.description.length > 100 ? '...' : ''}</td>
+                <td>${req.deadline || 'N/A'}</td>
+                <td><span class="badge bg-info">${req.jurisdiction || 'Unknown'}</span></td>
+                <td>${req.penalty || 'Not specified'}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    return html;
+}
+
+function formatFinancialMetricsResults(data) {
+    if (data.error) {
+        return `<div class="alert alert-danger">${data.error}</div>`;
+    }
+    
+    const metrics = data.metrics || [];
+    const rankings = data.rankings || {};
+    const analysis = data.comparative_analysis || {};
+    
+    let html = `
+        <div class="mb-4">
+            <h6>Financial Metrics Summary</h6>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-success">${metrics.length}</h4>
+                            <small>Companies Analyzed</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-info">${Object.keys(rankings).length}</h4>
+                            <small>Metrics Compared</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-warning">${calculateTopPerformer(rankings)}</h4>
+                            <small>Top Performer</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-primary">${calculateAvgScore(analysis)}%</h4>
+                            <small>Avg Investment Score</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h6>Performance Rankings</h6>
+        <div class="row mb-4">
+    `;
+    
+    Object.entries(rankings).slice(0, 4).forEach(([metric, companies]) => {
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">${metric.toUpperCase()} Ranking</h6>
+                    </div>
+                    <div class="card-body">
+                        <ol class="mb-0">
+    `;
+        
+        companies.slice(0, 5).forEach(company => {
+            html += `<li>${company}</li>`;
+        });
+        
+        html += `
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        
+        <h6>Investment Recommendations</h6>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Investment Score</th>
+                        <th>Risk Score</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    (analysis.peer_analysis || []).slice(0, 10).forEach(company => {
+        const scoreClass = company.investment_score >= 8 ? 'success' : company.investment_score >= 6 ? 'warning' : 'danger';
+        html += `
+            <tr>
+                <td>${company.company || 'Unknown'}</td>
+                <td><span class="badge bg-${scoreClass}">${company.investment_score || 0}/10</span></td>
+                <td><span class="badge bg-info">${company.risk_score || 0}/10</span></td>
+                <td>${company.investment_score >= 7 ? 'Buy' : company.investment_score >= 5 ? 'Hold' : 'Sell'}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    return html;
+}
+
+function displayExecutionGraph(results) {
+    const graphDiv = document.getElementById('execution-graph');
+    
+    // Simple execution graph visualization
+    const steps = ['Generate', 'Score', 'Select', 'Aggregate', 'Improve', 'Validate'];
+    const thoughtCounts = [5, 5, 3, 1, 3, 1]; // Sample data
+    
+    let graphHTML = `
+        <div class="w-100">
+            <h6 class="text-center mb-4">GoT Execution Flow</h6>
+            <div class="d-flex justify-content-between align-items-center">
+    `;
+    
+    steps.forEach((step, index) => {
+        graphHTML += `
+            <div class="text-center">
+                <div class="thought-node bg-primary text-white p-2 rounded">
+                    <div class="fw-bold">${step}</div>
+                    <small>${thoughtCounts[index]} thoughts</small>
+                </div>
+                ${index < steps.length - 1 ? '<i class="fas fa-arrow-right text-muted mx-2"></i>' : ''}
+            </div>
+        `;
+    });
+    
+    graphHTML += `
+            </div>
+            <div class="mt-4 text-center">
+                <small class="text-muted">
+                    Total execution path: ${steps.length} operations, 
+                    ${thoughtCounts.reduce((a, b) => a + b, 0)} thoughts generated
+                </small>
+            </div>
+        </div>
+    `;
+    
+    graphDiv.innerHTML = graphHTML;
+}
+
+function updatePerformanceMetrics(results) {
+    const metricsTable = document.getElementById('metrics-tbody');
+    
+    const metrics = [
+        ['Execution Time', formatDuration(results.execution_time || 0), 'seconds'],
+        ['Total Cost', results.cost || '$0.00', 'USD'],
+        ['Thoughts Generated', results.results?.thought_count || 0, 'count'],
+        ['Quality Score', calculateQualityScore(results) + '/10', 'score'],
+        ['Cost per Thought', calculateCostPerThought(results), 'USD'],
+        ['Thoughts per Second', calculateThoughtsPerSecond(results), 'rate']
+    ];
+    
+    metricsTable.innerHTML = '';
+    metrics.forEach(([metric, value, unit]) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${metric}</td>
+            <td><strong>${value}</strong></td>
+            <td><span class="text-muted">${unit}</span></td>
+        `;
+        metricsTable.appendChild(row);
+    });
+}
+
+// Utility functions
+function calculateQualityScore(results) {
+    // Simple quality score calculation
+    const baseScore = 7;
+    const hasResults = results.results && !results.results.error ? 1 : -2;
+    const costEfficiency = (results.cost && parseFloat(results.cost.replace(', '')) < 1) ? 1 : 0;
+    const timeEfficiency = (results.execution_time && results.execution_time < 60) ? 1 : 0;
+    
+    return Math.max(1, Math.min(10, baseScore + hasResults + costEfficiency + timeEfficiency));
+}
+
+function calculateAverageSeverity(risks) {
+    if (!risks || risks.length === 0) return 0;
+    const total = risks.reduce((sum, risk) => sum + (risk.severity || 0), 0);
+    return total / risks.length;
+}
+
+function calculateComplianceScore(data) {
+    const requirements = data.requirements || [];
+    const conflicts = data.conflicts || [];
+    
+    if (requirements.length === 0) return 0;
+    
+    const conflictPenalty = conflicts.length * 10;
+    const baseScore = 100;
+    
+    return Math.max(0, baseScore - conflictPenalty);
+}
+
+function calculateTopPerformer(rankings) {
+    if (!rankings || Object.keys(rankings).length === 0) return 'N/A';
+    
+    // Find the company that appears first in most rankings
+    const companies = {};
+    Object.values(rankings).forEach(ranking => {
+        if (ranking && ranking.length > 0) {
+            companies[ranking[0]] = (companies[ranking[0]] || 0) + 1;
+        }
+    });
+    
+    let topCompany = 'N/A';
+    let maxCount = 0;
+    Object.entries(companies).forEach(([company, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            topCompany = company;
+        }
+    });
+    
+    return topCompany;
+}
+
+function calculateAvgScore(analysis) {
+    const peerAnalysis = analysis.peer_analysis || [];
+    if (peerAnalysis.length === 0) return 0;
+    
+    const total = peerAnalysis.reduce((sum, company) => sum + (company.investment_score || 0), 0);
+    return Math.round((total / peerAnalysis.length) * 10);
+}
+
+function calculateCostPerThought(results) {
+    const cost = parseFloat((results.cost || '$0').replace(', ''));
+    const thoughts = results.results?.thought_count || 1;
+    return formatCurrency(cost / thoughts);
+}
+
+function calculateThoughtsPerSecond(results) {
+    const thoughts = results.results?.thought_count || 0;
+    const time = results.execution_time || 1;
+    return (thoughts / time).toFixed(2);
+}
+
+function updateReasoningDepth() {
+    const depth = document.getElementById('reasoning-depth').value;
+    const depthMap = {
+        'simple': 'io',
+        'moderate': 'cot',
+        'complex': 'tot',
+        'advanced': 'got'
+    };
+    
+    if (document.getElementById('reasoning-method')) {
+        document.getElementById('reasoning-method').value = depthMap[depth];
+    }
+}
+
+function updateMaxCost() {
+    const maxCost = document.getElementById('max-cost').value;
+    showAlert(`Maximum cost set to ${formatCurrency(parseFloat(maxCost))}`, 'info');
+}
+
+// Export functionality
+document.getElementById('export-results')?.addEventListener('click', function() {
+    if (executionResults) {
+        const dataStr = JSON.stringify(executionResults, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `got-finance-results-${currentWorkflow}-${Date.now()}.json`;
+        link.click();
+        
+        showAlert('Results exported successfully', 'success');
+    }
+});
+
+// Clear results functionality
+document.getElementById('clear-results')?.addEventListener('click', function() {
+    if (confirm('Are you sure you want to clear the current results?')) {
+        document.getElementById('results-panel').style.display = 'none';
+        executionResults = null;
+        
+        document.getElementById('workflow-status').textContent = 'Ready';
+        document.getElementById('workflow-status').className = 'badge bg-secondary';
+        
+        showAlert('Results cleared', 'info');
+    }
+});
+</script>
+{% endblock %}

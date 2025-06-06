@@ -1,0 +1,1877 @@
+{% extends "base.html" %}
+
+{% block title %}GoT Finance Analytics - Advanced Configuration{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+<style>
+.operation-node {
+    background: #fff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+.operation-node:hover {
+    border-color: #0056b3;
+    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+}
+.operation-node.selected {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+.operation-node.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.graph-canvas {
+    min-height: 400px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    position: relative;
+    overflow: auto;
+}
+.connection-line {
+    position: absolute;
+    height: 2px;
+    background: #007bff;
+    z-index: 1;
+}
+.parameter-group {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+.cost-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ffc107;
+    color: #000;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+}
+.performance-badge {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    background: #28a745;
+    color: white;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+}
+.validation-error {
+    border-color: #dc3545 !important;
+    background-color: #f8d7da !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Left Sidebar - Operation Library -->
+        <div class="col-lg-3 col-md-4">
+            <div class="card sticky-top" style="top: 100px;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-puzzle-piece me-2"></i>
+                        Operation Library
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Core Operations -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Core Operations</h6>
+                        
+                        <div class="operation-node" data-operation="Generate" data-cost="2">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-plus-circle text-primary me-2"></i>
+                                <div>
+                                    <strong>Generate</strong>
+                                    <small class="d-block text-muted">Create new thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">2</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="Score" data-cost="1">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-star text-warning me-2"></i>
+                                <div>
+                                    <strong>Score</strong>
+                                    <small class="d-block text-muted">Evaluate thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">1</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="KeepBestN" data-cost="0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-filter text-success me-2"></i>
+                                <div>
+                                    <strong>KeepBestN</strong>
+                                    <small class="d-block text-muted">Select top N thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">0</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="Aggregate" data-cost="3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-compress-alt text-info me-2"></i>
+                                <div>
+                                    <strong>Aggregate</strong>
+                                    <small class="d-block text-muted">Combine thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">3</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Operations -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">Advanced Operations</h6>
+                        
+                        <div class="operation-node" data-operation="ValidateAndImprove" data-cost="4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-double text-success me-2"></i>
+                                <div>
+                                    <strong>ValidateAndImprove</strong>
+                                    <small class="d-block text-muted">Validate & enhance</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">4</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="Improve" data-cost="2">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-arrow-up text-primary me-2"></i>
+                                <div>
+                                    <strong>Improve</strong>
+                                    <small class="d-block text-muted">Enhance thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">2</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="KeepValid" data-cost="0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-shield-alt text-success me-2"></i>
+                                <div>
+                                    <strong>KeepValid</strong>
+                                    <small class="d-block text-muted">Filter valid thoughts</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">0</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="Selector" data-cost="0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-mouse-pointer text-info me-2"></i>
+                                <div>
+                                    <strong>Selector</strong>
+                                    <small class="d-block text-muted">Custom selection</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">0</div>
+                        </div>
+                        
+                        <div class="operation-node" data-operation="GroundTruth" data-cost="1">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-bullseye text-danger me-2"></i>
+                                <div>
+                                    <strong>GroundTruth</strong>
+                                    <small class="d-block text-muted">Evaluate solution</small>
+                                </div>
+                            </div>
+                            <div class="cost-indicator">1</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Preset Templates -->
+                    <div>
+                        <h6 class="text-muted mb-3">Preset Templates</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('simple_io')">
+                                Simple IO
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('chain_of_thought')">
+                                Chain of Thought
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('tree_of_thought')">
+                                Tree of Thought
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('graph_of_thought')">
+                                Graph of Thought
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content - Graph Builder -->
+        <div class="col-lg-6 col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-project-diagram me-2"></i>
+                        Graph Builder
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearGraph()">
+                            <i class="fas fa-trash me-1"></i>Clear
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="validateGraph()">
+                            <i class="fas fa-check me-1"></i>Validate
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="executeCustomGraph()">
+                            <i class="fas fa-play me-1"></i>Execute
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="graph-canvas" id="graph-canvas">
+                        <div class="text-center text-muted p-5">
+                            <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                            <h5>Drag operations here to build your graph</h5>
+                            <p>Click on operations from the left panel to add them to your reasoning graph</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Graph Statistics -->
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <div class="row text-center">
+                            <div class="col-3">
+                                <strong id="operation-count">0</strong>
+                                <small class="d-block text-muted">Operations</small>
+                            </div>
+                            <div class="col-3">
+                                <strong id="estimated-cost">$0.00</strong>
+                                <small class="d-block text-muted">Est. Cost</small>
+                            </div>
+                            <div class="col-3">
+                                <strong id="complexity-score">0</strong>
+                                <small class="d-block text-muted">Complexity</small>
+                            </div>
+                            <div class="col-3">
+                                <strong id="validation-status">Invalid</strong>
+                                <small class="d-block text-muted">Status</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Configuration -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-keyboard me-2"></i>
+                        Input Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Workflow Type</label>
+                        <select class="form-select" id="custom-workflow-type">
+                            <option value="risk_analysis">Risk Analysis</option>
+                            <option value="document_merge">Document Merge</option>
+                            <option value="compliance_analysis">Compliance Analysis</option>
+                            <option value="financial_metrics">Financial Metrics</option>
+                            <option value="custom">Custom Workflow</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Input Data</label>
+                        <textarea class="form-control" id="custom-input-data" rows="4" 
+                                  placeholder="Enter your input data here..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Max Cost ($)</label>
+                            <input type="number" class="form-control" id="custom-max-cost" 
+                                   value="10.00" step="1.00" min="1.00" max="100.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Timeout (minutes)</label>
+                            <input type="number" class="form-control" id="custom-timeout" 
+                                   value="10" min="1" max="60">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Sidebar - Configuration Panel -->
+        <div class="col-lg-3">
+            <div class="card sticky-top" style="top: 100px;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>
+                        Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Selected Operation Config -->
+                    <div id="operation-config" style="display: none;">
+                        <h6 class="mb-3">Operation Settings</h6>
+                        <div id="operation-parameters"></div>
+                    </div>
+                    
+                    <!-- Global Settings -->
+                    <div class="parameter-group">
+                        <h6 class="mb-3">Global Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Default Branches</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="global-branches" value="3" min="1" max="10">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Temperature</label>
+                            <input type="range" class="form-range" id="global-temperature" 
+                                   min="0" max="2" step="0.1" value="1.0">
+                            <small class="text-muted">Current: <span id="temp-value">1.0</span></small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Max Tokens</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="global-max-tokens" value="4096" min="512" max="8192" step="512">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-caching" checked>
+                                <label class="form-check-label small" for="enable-caching">
+                                    Enable Response Caching
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable-debug" checked>
+                                <label class="form-check-label small" for="enable-debug">
+                                    Debug Mode
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Optimization -->
+                    <div class="parameter-group">
+                        <h6 class="mb-3">Performance</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Parallel Operations</label>
+                            <select class="form-select form-select-sm" id="parallel-ops">
+                                <option value="1">Sequential</option>
+                                <option value="2" selected>2 Parallel</option>
+                                <option value="4">4 Parallel</option>
+                                <option value="8">8 Parallel</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Retry Strategy</label>
+                            <select class="form-select form-select-sm" id="retry-strategy">
+                                <option value="none">No Retries</option>
+                                <option value="exponential" selected>Exponential Backoff</option>
+                                <option value="linear">Linear Backoff</option>
+                                <option value="immediate">Immediate Retry</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Max Retries</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   id="max-retries" value="3" min="0" max="10">
+                        </div>
+                    </div>
+                    
+                    <!-- Quality Control -->
+                    <div class="parameter-group">
+                        <h6 class="mb-3">Quality Control</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Min Quality Threshold</label>
+                            <input type="range" class="form-range" id="quality-threshold" 
+                                   min="0" max="10" step="0.5" value="6.0">
+                            <small class="text-muted">Current: <span id="quality-value">6.0</span></small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto-validate" checked>
+                                <label class="form-check-label small" for="auto-validate">
+                                    Auto-validate Results
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="early-stopping">
+                                <label class="form-check-label small" for="early-stopping">
+                                    Early Stopping
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cost Management -->
+                    <div class="parameter-group">
+                        <h6 class="mb-3">Cost Management</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Cost Alert Threshold</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="cost-alert" 
+                                       value="5.00" step="0.50" min="1.00" max="50.00">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="cost-optimization" checked>
+                                <label class="form-check-label small" for="cost-optimization">
+                                    Auto Cost Optimization
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div class="progress-bar bg-success" id="cost-progress" 
+                                 style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted">Budget Used: <span id="budget-used">$0.00</span></small>
+                    </div>
+                    
+                    <!-- Export/Import -->
+                    <div class="parameter-group">
+                        <h6 class="mb-3">Graph Management</h6>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="exportGraph()">
+                                <i class="fas fa-download me-1"></i>Export Graph
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="importGraph()">
+                                <i class="fas fa-upload me-1"></i>Import Graph
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="saveTemplate()">
+                                <i class="fas fa-save me-1"></i>Save Template
+                            </button>
+                        </div>
+                        
+                        <input type="file" id="import-file" accept=".json" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Execution Results Modal -->
+    <div class="modal fade" id="executionModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Custom Graph Execution Results
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-primary text-white rounded">
+                                <h4 id="modal-execution-time">--</h4>
+                                <small>Execution Time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-success text-white rounded">
+                                <h4 id="modal-execution-cost">--</h4>
+                                <small>Total Cost</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-info text-white rounded">
+                                <h4 id="modal-thought-count">--</h4>
+                                <small>Thoughts</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-warning text-white rounded">
+                                <h4 id="modal-quality-score">--</h4>
+                                <small>Quality</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <ul class="nav nav-tabs" id="modal-tabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#modal-output">
+                                Output
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-execution-trace">
+                                Execution Trace
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modal-performance">
+                                Performance Analysis
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade show active" id="modal-output">
+                            <div id="modal-formatted-output"></div>
+                        </div>
+                        <div class="tab-pane fade" id="modal-execution-trace">
+                            <div id="modal-trace-content"></div>
+                        </div>
+                        <div class="tab-pane fade" id="modal-performance">
+                            <div id="modal-performance-content"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="exportResults()">Export Results</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+
+<script>
+let graphOperations = [];
+let selectedOperation = null;
+let currentExecutionResults = null;
+let draggedElement = null;
+
+// Operation configurations and parameters
+const operationConfigs = {
+    Generate: {
+        parameters: {
+            num_branches_prompt: { type: 'number', default: 1, min: 1, max: 10, label: 'Branches per Prompt' },
+            num_branches_response: { type: 'number', default: 1, min: 1, max: 5, label: 'Responses per Branch' }
+        },
+        cost: 2,
+        description: 'Generate new thoughts from current thoughts'
+    },
+    Score: {
+        parameters: {
+            num_samples: { type: 'number', default: 1, min: 1, max: 5, label: 'Scoring Samples' },
+            combined_scoring: { type: 'checkbox', default: false, label: 'Combined Scoring' }
+        },
+        cost: 1,
+        description: 'Score thoughts for quality assessment'
+    },
+    KeepBestN: {
+        parameters: {
+            n: { type: 'number', default: 3, min: 1, max: 20, label: 'Number to Keep' },
+            higher_is_better: { type: 'checkbox', default: true, label: 'Higher is Better' }
+        },
+        cost: 0,
+        description: 'Keep only the top N scored thoughts'
+    },
+    Aggregate: {
+        parameters: {
+            num_responses: { type: 'number', default: 1, min: 1, max: 5, label: 'Aggregation Responses' }
+        },
+        cost: 3,
+        description: 'Combine multiple thoughts into one'
+    },
+    ValidateAndImprove: {
+        parameters: {
+            num_samples: { type: 'number', default: 1, min: 1, max: 3, label: 'Validation Samples' },
+            improve: { type: 'checkbox', default: true, label: 'Enable Improvement' },
+            num_tries: { type: 'number', default: 3, min: 1, max: 10, label: 'Max Improvement Tries' }
+        },
+        cost: 4,
+        description: 'Validate thoughts and improve if needed'
+    },
+    Improve: {
+        parameters: {},
+        cost: 2,
+        description: 'Improve existing thoughts'
+    },
+    KeepValid: {
+        parameters: {},
+        cost: 0,
+        description: 'Keep only validated thoughts'
+    },
+    Selector: {
+        parameters: {
+            selection_strategy: { 
+                type: 'select', 
+                default: 'random', 
+                options: ['random', 'top_half', 'bottom_half', 'every_other'],
+                label: 'Selection Strategy' 
+            }
+        },
+        cost: 0,
+        description: 'Apply custom selection logic'
+    },
+    GroundTruth: {
+        parameters: {},
+        cost: 1,
+        description: 'Evaluate against ground truth'
+    }
+};
+
+// Preset graph templates
+const presetTemplates = {
+    simple_io: {
+        name: 'Simple Input-Output',
+        operations: [
+            { type: 'Generate', id: 'gen1', parameters: { num_branches_prompt: 1, num_branches_response: 1 } }
+        ],
+        description: 'Basic input-output without reasoning'
+    },
+    chain_of_thought: {
+        name: 'Chain of Thought',
+        operations: [
+            { type: 'Generate', id: 'gen1', parameters: { num_branches_prompt: 1, num_branches_response: 1 } },
+            { type: 'Generate', id: 'gen2', parameters: { num_branches_prompt: 1, num_branches_response: 1 } },
+            { type: 'Generate', id: 'gen3', parameters: { num_branches_prompt: 1, num_branches_response: 1 } }
+        ],
+        description: 'Sequential reasoning chain'
+    },
+    tree_of_thought: {
+        name: 'Tree of Thought',
+        operations: [
+            { type: 'Generate', id: 'gen1', parameters: { num_branches_prompt: 3, num_branches_response: 1 } },
+            { type: 'Score', id: 'score1', parameters: { num_samples: 1, combined_scoring: false } },
+            { type: 'KeepBestN', id: 'keep1', parameters: { n: 2, higher_is_better: true } },
+            { type: 'Generate', id: 'gen2', parameters: { num_branches_prompt: 2, num_branches_response: 1 } },
+            { type: 'Score', id: 'score2', parameters: { num_samples: 1, combined_scoring: false } },
+            { type: 'KeepBestN', id: 'keep2', parameters: { n: 1, higher_is_better: true } }
+        ],
+        description: 'Branching and pruning reasoning'
+    },
+    graph_of_thought: {
+        name: 'Graph of Thought',
+        operations: [
+            { type: 'Generate', id: 'gen1', parameters: { num_branches_prompt: 5, num_branches_response: 1 } },
+            { type: 'Score', id: 'score1', parameters: { num_samples: 1, combined_scoring: false } },
+            { type: 'KeepBestN', id: 'keep1', parameters: { n: 3, higher_is_better: true } },
+            { type: 'Aggregate', id: 'agg1', parameters: { num_responses: 2 } },
+            { type: 'Score', id: 'score2', parameters: { num_samples: 1, combined_scoring: false } },
+            { type: 'KeepBestN', id: 'keep2', parameters: { n: 1, higher_is_better: true } },
+            { type: 'ValidateAndImprove', id: 'val1', parameters: { num_samples: 1, improve: true, num_tries: 3 } }
+        ],
+        description: 'Complex graph-based reasoning with aggregation and improvement'
+    }
+};
+
+// Initialize the advanced interface
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDragAndDrop();
+    initializeParameterControls();
+    initializeEventListeners();
+    updateGraphStatistics();
+});
+
+function initializeDragAndDrop() {
+    // Make operation nodes draggable
+    document.querySelectorAll('.operation-node').forEach(node => {
+        node.addEventListener('click', function() {
+            addOperationToGraph(this.dataset.operation);
+        });
+        
+        node.addEventListener('dragstart', function(e) {
+            draggedElement = this.dataset.operation;
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+        
+        node.draggable = true;
+    });
+    
+    // Make graph canvas a drop target
+    const canvas = document.getElementById('graph-canvas');
+    canvas.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    
+    canvas.addEventListener('drop', function(e) {
+        e.preventDefault();
+        if (draggedElement) {
+            addOperationToGraph(draggedElement);
+            draggedElement = null;
+        }
+    });
+}
+
+function initializeParameterControls() {
+    // Temperature slider
+    const tempSlider = document.getElementById('global-temperature');
+    const tempValue = document.getElementById('temp-value');
+    tempSlider.addEventListener('input', function() {
+        tempValue.textContent = this.value;
+    });
+    
+    // Quality threshold slider
+    const qualitySlider = document.getElementById('quality-threshold');
+    const qualityValue = document.getElementById('quality-value');
+    qualitySlider.addEventListener('input', function() {
+        qualityValue.textContent = this.value;
+    });
+    
+    // Cost progress updates
+    updateCostProgress();
+}
+
+function initializeEventListeners() {
+    // Import file handler
+    document.getElementById('import-file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const graphData = JSON.parse(e.target.result);
+                    loadGraphFromData(graphData);
+                    showAlert('Graph imported successfully', 'success');
+                } catch (error) {
+                    showAlert('Failed to import graph: Invalid JSON', 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+}
+
+function addOperationToGraph(operationType) {
+    const operationId = `${operationType.toLowerCase()}_${Date.now()}`;
+    const operation = {
+        id: operationId,
+        type: operationType,
+        parameters: getDefaultParameters(operationType),
+        position: { x: 50 + (graphOperations.length * 120), y: 50 },
+        predecessors: graphOperations.length > 0 ? [graphOperations[graphOperations.length - 1].id] : []
+    };
+    
+    graphOperations.push(operation);
+    renderGraph();
+    updateGraphStatistics();
+    
+    showAlert(`Added ${operationType} operation`, 'success');
+}
+
+function getDefaultParameters(operationType) {
+    const config = operationConfigs[operationType];
+    const params = {};
+    
+    if (config && config.parameters) {
+        Object.entries(config.parameters).forEach(([key, paramConfig]) => {
+            params[key] = paramConfig.default;
+        });
+    }
+    
+    return params;
+}
+
+function renderGraph() {
+    const canvas = document.getElementById('graph-canvas');
+    
+    if (graphOperations.length === 0) {
+        canvas.innerHTML = `
+            <div class="text-center text-muted p-5">
+                <i class="fas fa-mouse-pointer fa-3x mb-3"></i>
+                <h5>Drag operations here to build your graph</h5>
+                <p>Click on operations from the left panel to add them to your reasoning graph</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let graphHTML = '<div class="position-relative">';
+    
+    // Render operations
+    graphOperations.forEach((operation, index) => {
+        const config = operationConfigs[operation.type];
+        const isSelected = selectedOperation === operation.id;
+        
+        graphHTML += `
+            <div class="operation-node ${isSelected ? 'selected' : ''}" 
+                 style="position: absolute; left: ${operation.position.x}px; top: ${operation.position.y}px; min-width: 120px;"
+                 onclick="selectOperation('${operation.id}')"
+                 data-operation-id="${operation.id}">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${getOperationIcon(operation.type)} me-2"></i>
+                    <div>
+                        <strong>${operation.type}</strong>
+                        <small class="d-block text-muted">${config.description.substring(0, 20)}...</small>
+                    </div>
+                </div>
+                <div class="cost-indicator">${config.cost}</div>
+                ${isValidOperation(operation) ? '<div class="performance-badge">✓</div>' : ''}
+                <button class="btn btn-sm btn-outline-danger position-absolute" 
+                        style="top: -8px; right: -8px; width: 20px; height: 20px; padding: 0; font-size: 10px;"
+                        onclick="removeOperation('${operation.id}', event)">×</button>
+            </div>
+        `;
+        
+        // Render connections
+        if (operation.predecessors.length > 0) {
+            operation.predecessors.forEach(predId => {
+                const predecessor = graphOperations.find(op => op.id === predId);
+                if (predecessor) {
+                    const startX = predecessor.position.x + 60;
+                    const startY = predecessor.position.y + 30;
+                    const endX = operation.position.x;
+                    const endY = operation.position.y + 30;
+                    
+                    graphHTML += `
+                        <div class="connection-line" 
+                             style="left: ${startX}px; top: ${startY}px; 
+                                    width: ${endX - startX}px; 
+                                    transform: rotate(${Math.atan2(endY - startY, endX - startX)}rad);"></div>
+                    `;
+                }
+            });
+        }
+    });
+    
+    graphHTML += '</div>';
+    canvas.innerHTML = graphHTML;
+}
+
+function getOperationIcon(operationType) {
+    const icons = {
+        'Generate': 'plus-circle',
+        'Score': 'star',
+        'KeepBestN': 'filter',
+        'Aggregate': 'compress-alt',
+        'ValidateAndImprove': 'check-double',
+        'Improve': 'arrow-up',
+        'KeepValid': 'shield-alt',
+        'Selector': 'mouse-pointer',
+        'GroundTruth': 'bullseye'
+    };
+    return icons[operationType] || 'cog';
+}
+
+function selectOperation(operationId) {
+    selectedOperation = operationId;
+    const operation = graphOperations.find(op => op.id === operationId);
+    
+    if (operation) {
+        renderOperationConfig(operation);
+        renderGraph(); // Re-render to show selection
+    }
+}
+
+function renderOperationConfig(operation) {
+    const configDiv = document.getElementById('operation-config');
+    const parametersDiv = document.getElementById('operation-parameters');
+    const config = operationConfigs[operation.type];
+    
+    let parametersHTML = `
+        <div class="mb-3">
+            <h6 class="text-primary">${operation.type}</h6>
+            <small class="text-muted">${config.description}</small>
+        </div>
+    `;
+    
+    if (config.parameters && Object.keys(config.parameters).length > 0) {
+        Object.entries(config.parameters).forEach(([key, paramConfig]) => {
+            const currentValue = operation.parameters[key] || paramConfig.default;
+            
+            parametersHTML += `<div class="mb-3">`;
+            parametersHTML += `<label class="form-label small">${paramConfig.label}</label>`;
+            
+            if (paramConfig.type === 'number') {
+                parametersHTML += `
+                    <input type="number" class="form-control form-control-sm" 
+                           value="${currentValue}" 
+                           min="${paramConfig.min || 0}" 
+                           max="${paramConfig.max || 100}"
+                           onchange="updateOperationParameter('${operation.id}', '${key}', this.value)">
+                `;
+            } else if (paramConfig.type === 'checkbox') {
+                parametersHTML += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" 
+                               ${currentValue ? 'checked' : ''}
+                               onchange="updateOperationParameter('${operation.id}', '${key}', this.checked)">
+                        <label class="form-check-label small">${paramConfig.label}</label>
+                    </div>
+                `;
+            } else if (paramConfig.type === 'select') {
+                parametersHTML += `<select class="form-select form-select-sm" 
+                                          onchange="updateOperationParameter('${operation.id}', '${key}', this.value)">`;
+                paramConfig.options.forEach(option => {
+                    parametersHTML += `<option value="${option}" ${currentValue === option ? 'selected' : ''}>${option}</option>`;
+                });
+                parametersHTML += `</select>`;
+            }
+            
+            parametersHTML += `</div>`;
+        });
+    } else {
+        parametersHTML += `<p class="text-muted small">No configurable parameters</p>`;
+    }
+    
+    parametersDiv.innerHTML = parametersHTML;
+    configDiv.style.display = 'block';
+}
+
+function updateOperationParameter(operationId, parameter, value) {
+    const operation = graphOperations.find(op => op.id === operationId);
+    if (operation) {
+        operation.parameters[parameter] = value;
+        updateGraphStatistics();
+        showAlert(`Updated ${parameter} for ${operation.type}`, 'info');
+    }
+}
+
+function removeOperation(operationId, event) {
+    event.stopPropagation();
+    
+    if (confirm('Remove this operation from the graph?')) {
+        graphOperations = graphOperations.filter(op => op.id !== operationId);
+        
+        // Remove references in predecessors
+        graphOperations.forEach(op => {
+            op.predecessors = op.predecessors.filter(predId => predId !== operationId);
+        });
+        
+        if (selectedOperation === operationId) {
+            selectedOperation = null;
+            document.getElementById('operation-config').style.display = 'none';
+        }
+        
+        renderGraph();
+        updateGraphStatistics();
+        showAlert('Operation removed', 'warning');
+    }
+}
+
+function updateGraphStatistics() {
+    document.getElementById('operation-count').textContent = graphOperations.length;
+    
+    const estimatedCost = calculateEstimatedCost();
+    document.getElementById('estimated-cost').textContent = formatCurrency(estimatedCost);
+    
+    const complexity = calculateComplexity();
+    document.getElementById('complexity-score').textContent = complexity;
+    
+    const isValid = validateGraphStructure();
+    document.getElementById('validation-status').textContent = isValid ? 'Valid' : 'Invalid';
+    document.getElementById('validation-status').className = isValid ? 'text-success' : 'text-danger';
+    
+    updateCostProgress();
+}
+
+function calculateEstimatedCost() {
+    const baseCostPerOperation = 0.01;
+    let totalCost = 0;
+    
+    graphOperations.forEach(operation => {
+        const config = operationConfigs[operation.type];
+        const operationCost = config.cost * baseCostPerOperation;
+        
+        // Factor in parameters
+        if (operation.parameters.num_branches_prompt) {
+            totalCost += operationCost * operation.parameters.num_branches_prompt;
+        } else if (operation.parameters.num_samples) {
+            totalCost += operationCost * operation.parameters.num_samples;
+        } else {
+            totalCost += operationCost;
+        }
+    });
+    
+    return totalCost;
+}
+
+function calculateComplexity() {
+    if (graphOperations.length === 0) return 0;
+    
+    let complexity = graphOperations.length;
+    
+    // Add complexity for branching
+    graphOperations.forEach(operation => {
+        if (operation.parameters.num_branches_prompt > 1) {
+            complexity += operation.parameters.num_branches_prompt - 1;
+        }
+        if (operation.predecessors.length > 1) {
+            complexity += operation.predecessors.length - 1;
+        }
+    });
+    
+    return Math.min(complexity, 10);
+}
+
+function validateGraphStructure() {
+    if (graphOperations.length === 0) return false;
+    
+    // Check for at least one Generate operation
+    const hasGenerate = graphOperations.some(op => op.type === 'Generate');
+    if (!hasGenerate) return false;
+    
+    // Check for valid predecessor references
+    for (const operation of graphOperations) {
+        for (const predId of operation.predecessors) {
+            if (!graphOperations.find(op => op.id === predId)) {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+function isValidOperation(operation) {
+    const config = operationConfigs[operation.type];
+    
+    // Validate parameters
+    if (config.parameters) {
+        for (const [key, paramConfig] of Object.entries(config.parameters)) {
+            const value = operation.parameters[key];
+            
+            if (paramConfig.type === 'number') {
+                if (value < (paramConfig.min || 0) || value > (paramConfig.max || 100)) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
+}
+
+function updateCostProgress() {
+    const maxCost = parseFloat(document.getElementById('custom-max-cost').value);
+    const currentCost = calculateEstimatedCost();
+    const percentage = Math.min((currentCost / maxCost) * 100, 100);
+    
+    document.getElementById('cost-progress').style.width = percentage + '%';
+    document.getElementById('budget-used').textContent = formatCurrency(currentCost);
+    
+    // Update progress bar color based on usage
+    const progressBar = document.getElementById('cost-progress');
+    if (percentage > 80) {
+        progressBar.className = 'progress-bar bg-danger';
+    } else if (percentage > 60) {
+        progressBar.className = 'progress-bar bg-warning';
+    } else {
+        progressBar.className = 'progress-bar bg-success';
+    }
+}
+
+// Preset template functions
+function loadPreset(presetName) {
+    const preset = presetTemplates[presetName];
+    if (!preset) {
+        showAlert('Preset not found', 'danger');
+        return;
+    }
+    
+    if (graphOperations.length > 0 && !confirm('This will replace your current graph. Continue?')) {
+        return;
+    }
+    
+    clearGraph();
+    
+    // Load preset operations
+    preset.operations.forEach((opTemplate, index) => {
+        const operation = {
+            id: opTemplate.id,
+            type: opTemplate.type,
+            parameters: { ...opTemplate.parameters },
+            position: { x: 50 + (index * 150), y: 50 + (Math.floor(index / 4) * 100) },
+            predecessors: index > 0 ? [preset.operations[index - 1].id] : []
+        };
+        graphOperations.push(operation);
+    });
+    
+    renderGraph();
+    updateGraphStatistics();
+    showAlert(`Loaded ${preset.name} template`, 'success');
+}
+
+function clearGraph() {
+    graphOperations = [];
+    selectedOperation = null;
+    document.getElementById('operation-config').style.display = 'none';
+    renderGraph();
+    updateGraphStatistics();
+}
+
+function validateGraph() {
+    const isValid = validateGraphStructure();
+    const errors = [];
+    
+    if (graphOperations.length === 0) {
+        errors.push('Graph is empty');
+    }
+    
+    if (!graphOperations.some(op => op.type === 'Generate')) {
+        errors.push('Graph must contain at least one Generate operation');
+    }
+    
+    // Check for orphaned operations
+    graphOperations.forEach(operation => {
+        operation.predecessors.forEach(predId => {
+            if (!graphOperations.find(op => op.id === predId)) {
+                errors.push(`Operation ${operation.type} has invalid predecessor reference`);
+            }
+        });
+    });
+    
+    // Check for parameter validation
+    graphOperations.forEach(operation => {
+        if (!isValidOperation(operation)) {
+            errors.push(`Operation ${operation.type} has invalid parameters`);
+        }
+    });
+    
+    if (errors.length === 0) {
+        showAlert('Graph validation passed successfully', 'success');
+    } else {
+        showAlert(`Graph validation failed: ${errors.join(', ')}`, 'danger');
+    }
+    
+    return isValid && errors.length === 0;
+}
+
+async function executeCustomGraph() {
+    if (!validateGraph()) {
+        showAlert('Please fix graph validation errors before executing', 'warning');
+        return;
+    }
+    
+    const inputData = document.getElementById('custom-input-data').value.trim();
+    if (!inputData) {
+        showAlert('Please provide input data', 'warning');
+        return;
+    }
+    
+    try {
+        showLoading('Executing custom Graph of Thoughts...', 'Building complex reasoning graph');
+        
+        // Convert graph to GoT format and execute
+        const executionConfig = {
+            workflow_id: 'custom',
+            inputs: prepareCustomInputs(),
+            config: getCustomGraphConfig(),
+            graph_definition: graphOperations
+        };
+        
+        const response = await axios.post('/api/execute', executionConfig);
+        
+        if (response.data.error) {
+            throw new Error(response.data.error);
+        }
+        
+        currentExecutionResults = response.data;
+        displayExecutionResults(response.data);
+        
+        showAlert('Custom graph executed successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Custom execution error:', error);
+        showAlert(`Execution failed: ${error.message}`, 'danger');
+    } finally {
+        hideLoading();
+    }
+}
+
+function prepareCustomInputs() {
+    const inputData = document.getElementById('custom-input-data').value;
+    const workflowType = document.getElementById('custom-workflow-type').value;
+    
+    if (workflowType === 'custom') {
+        return { data: inputData };
+    }
+    
+    // Use workflow-specific input preparation
+    if (workflowType === 'risk_analysis') {
+        return { documents: inputData.split('\n\n').filter(doc => doc.trim()) };
+    } else if (workflowType === 'document_merge') {
+        return { documents: inputData.split('\n\n').filter(doc => doc.trim()) };
+    } else if (workflowType === 'compliance_analysis') {
+        return { regulatory_texts: inputData.split('\n\n').filter(text => text.trim()) };
+    } else if (workflowType === 'financial_metrics') {
+        return { financial_data: inputData.split('\n').filter(line => line.trim()) };
+    }
+    
+    return { data: inputData };
+}
+
+function getCustomGraphConfig() {
+    return {
+        max_cost: parseFloat(document.getElementById('custom-max-cost').value),
+        timeout_minutes: parseInt(document.getElementById('custom-timeout').value),
+        global_settings: {
+            branches: parseInt(document.getElementById('global-branches').value),
+            temperature: parseFloat(document.getElementById('global-temperature').value),
+            max_tokens: parseInt(document.getElementById('global-max-tokens').value),
+            enable_caching: document.getElementById('enable-caching').checked,
+            enable_debug: document.getElementById('enable-debug').checked
+        },
+        performance: {
+            parallel_operations: parseInt(document.getElementById('parallel-ops').value),
+            retry_strategy: document.getElementById('retry-strategy').value,
+            max_retries: parseInt(document.getElementById('max-retries').value)
+        },
+        quality_control: {
+            quality_threshold: parseFloat(document.getElementById('quality-threshold').value),
+            auto_validate: document.getElementById('auto-validate').checked,
+            early_stopping: document.getElementById('early-stopping').checked
+        },
+        cost_management: {
+            cost_alert_threshold: parseFloat(document.getElementById('cost-alert').value),
+            cost_optimization: document.getElementById('cost-optimization').checked
+        }
+    };
+}
+
+function displayExecutionResults(results) {
+    // Update modal with results
+    document.getElementById('modal-execution-time').textContent = formatDuration(results.execution_time || 0);
+    document.getElementById('modal-execution-cost').textContent = results.cost || '$0.00';
+    document.getElementById('modal-thought-count').textContent = results.results?.thought_count || 0;
+    document.getElementById('modal-quality-score').textContent = calculateQualityScore(results) + '/10';
+    
+    // Format output
+    document.getElementById('modal-formatted-output').innerHTML = formatCustomOutput(results);
+    
+    // Execution trace
+    document.getElementById('modal-trace-content').innerHTML = formatExecutionTrace(results);
+    
+    // Performance analysis
+    document.getElementById('modal-performance-content').innerHTML = formatPerformanceAnalysis(results);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('executionModal'));
+    modal.show();
+}
+
+function formatCustomOutput(results) {
+    const data = results.results;
+    
+    if (data.error) {
+        return `<div class="alert alert-danger">${data.error}</div>`;
+    }
+    
+    let html = `
+        <div class="mb-4">
+            <h6>Custom Graph Execution Summary</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-primary">${graphOperations.length}</h4>
+                            <small>Operations Executed</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-success">${data.thought_count || 0}</h4>
+                            <small>Total Thoughts</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h4 class="text-info">${calculateComplexity()}</h4>
+                            <small>Graph Complexity</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h6>Final Results</h6>
+        <div class="card bg-light">
+            <div class="card-body">
+                <pre class="mb-0">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+function formatExecutionTrace(results) {
+    const trace = results.execution_trace || [];
+    
+    let html = `
+        <div class="timeline">
+            <h6>Execution Timeline</h6>
+    `;
+    
+    graphOperations.forEach((operation, index) => {
+        const config = operationConfigs[operation.type];
+        html += `
+            <div class="d-flex mb-3">
+                <div class="flex-shrink-0">
+                    <div class="badge bg-primary rounded-circle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        ${index + 1}
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">${operation.type}</h6>
+                    <p class="text-muted mb-1">${config.description}</p>
+                    <small class="text-muted">Parameters: ${JSON.stringify(operation.parameters)}</small>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function formatPerformanceAnalysis(results) {
+    const performance = results.performance || {};
+    
+    return `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Cost Analysis</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tr><td>Total Cost</td><td><strong>${results.cost || '$0.00'}</strong></td></tr>
+                        <tr><td>Cost per Thought</td><td>${calculateCostPerThought(results)}</td></tr>
+                        <tr><td>Cost per Operation</td><td>${formatCurrency((parseFloat(results.cost?.replace(', '') || 0)) / graphOperations.length)}</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6>Performance Metrics</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tr><td>Execution Time</td><td><strong>${formatDuration(results.execution_time || 0)}</strong></td></tr>
+                        <tr><td>Thoughts per Second</td><td>${calculateThoughtsPerSecond(results)}</td></tr>
+                        <tr><td>Operations per Second</td><td>${(graphOperations.length / (results.execution_time || 1)).toFixed(2)}</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h6>Graph Efficiency</h6>
+            <div class="progress mb-2">
+                <div class="progress-bar bg-success" style="width: ${Math.min(calculateEfficiencyScore(results), 100)}%"></div>
+            </div>
+            <small class="text-muted">Efficiency Score: ${calculateEfficiencyScore(results).toFixed(1)}/100</small>
+        </div>
+    `;
+}
+
+function calculateEfficiencyScore(results) {
+    const costEfficiency = Math.max(0, 100 - (parseFloat(results.cost?.replace(', '') || 0) * 20));
+    const timeEfficiency = Math.max(0, 100 - ((results.execution_time || 0) / 60 * 10));
+    const qualityScore = calculateQualityScore(results) * 10;
+    
+    return (costEfficiency + timeEfficiency + qualityScore) / 3;
+}
+
+function calculateQualityScore(results) {
+    // Simple quality score calculation
+    const baseScore = 7;
+    const hasResults = results.results && !results.results.error ? 1 : -2;
+    const costEfficiency = (results.cost && parseFloat(results.cost.replace(', '')) < 1) ? 1 : 0;
+    const timeEfficiency = (results.execution_time && results.execution_time < 60) ? 1 : 0;
+    
+    return Math.max(1, Math.min(10, baseScore + hasResults + costEfficiency + timeEfficiency));
+}
+
+function calculateCostPerThought(results) {
+    const cost = parseFloat((results.cost || '$0').replace(', ''));
+    const thoughts = results.results?.thought_count || 1;
+    return formatCurrency(cost / thoughts);
+}
+
+function calculateThoughtsPerSecond(results) {
+    const thoughts = results.results?.thought_count || 0;
+    const time = results.execution_time || 1;
+    return (thoughts / time).toFixed(2);
+}
+
+// Export and import functions
+function exportGraph() {
+    if (graphOperations.length === 0) {
+        showAlert('No graph to export', 'warning');
+        return;
+    }
+    
+    const exportData = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        graph: graphOperations,
+        config: getCustomGraphConfig(),
+        metadata: {
+            operation_count: graphOperations.length,
+            complexity: calculateComplexity(),
+            estimated_cost: calculateEstimatedCost()
+        }
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `got-custom-graph-${Date.now()}.json`;
+    link.click();
+    
+    showAlert('Graph exported successfully', 'success');
+}
+
+function importGraph() {
+    document.getElementById('import-file').click();
+}
+
+function loadGraphFromData(graphData) {
+    if (!graphData.graph || !Array.isArray(graphData.graph)) {
+        throw new Error('Invalid graph data format');
+    }
+    
+    clearGraph();
+    graphOperations = graphData.graph;
+    
+    // Validate imported operations
+    graphOperations.forEach(operation => {
+        if (!operationConfigs[operation.type]) {
+            throw new Error(`Unknown operation type: ${operation.type}`);
+        }
+    });
+    
+    renderGraph();
+    updateGraphStatistics();
+}
+
+function saveTemplate() {
+    if (graphOperations.length === 0) {
+        showAlert('No graph to save as template', 'warning');
+        return;
+    }
+    
+    const templateName = prompt('Enter template name:');
+    if (!templateName) return;
+    
+    const templateData = {
+        name: templateName,
+        operations: graphOperations.map(op => ({
+            type: op.type,
+            id: op.id,
+            parameters: { ...op.parameters }
+        })),
+        description: `Custom template: ${templateName}`
+    };
+    
+    // Save to localStorage for demo purposes
+    const savedTemplates = JSON.parse(localStorage.getItem('got-custom-templates') || '{}');
+    savedTemplates[templateName] = templateData;
+    localStorage.setItem('got-custom-templates', JSON.stringify(savedTemplates));
+    
+    showAlert(`Template "${templateName}" saved successfully`, 'success');
+}
+
+function exportResults() {
+    if (!currentExecutionResults) {
+        showAlert('No results to export', 'warning');
+        return;
+    }
+    
+    const exportData = {
+        timestamp: new Date().toISOString(),
+        graph_definition: graphOperations,
+        execution_results: currentExecutionResults,
+        performance_analysis: {
+            efficiency_score: calculateEfficiencyScore(currentExecutionResults),
+            cost_per_thought: calculateCostPerThought(currentExecutionResults),
+            thoughts_per_second: calculateThoughtsPerSecond(currentExecutionResults)
+        }
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `got-execution-results-${Date.now()}.json`;
+    link.click();
+    
+    showAlert('Results exported successfully', 'success');
+}
+
+// Utility functions
+function formatCurrency(amount) {
+    if (amount === 0) return '$0.00';
+    if (amount < 0.01) return `${amount.toFixed(6)}`;
+    return `${amount.toFixed(2)}`;
+}
+
+function formatDuration(seconds) {
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds.toFixed(1)}s`;
+}
+
+// Auto-save functionality
+setInterval(function() {
+    if (graphOperations.length > 0) {
+        const autoSaveData = {
+            timestamp: new Date().toISOString(),
+            graph: graphOperations,
+            config: getCustomGraphConfig()
+        };
+        localStorage.setItem('got-auto-save', JSON.stringify(autoSaveData));
+    }
+}, 30000); // Auto-save every 30 seconds
+
+// Load auto-saved data on page load
+window.addEventListener('load', function() {
+    const autoSaveData = localStorage.getItem('got-auto-save');
+    if (autoSaveData) {
+        try {
+            const data = JSON.parse(autoSaveData);
+            const timeDiff = new Date() - new Date(data.timestamp);
+            
+            // Only restore if auto-save is less than 1 hour old
+            if (timeDiff < 3600000 && data.graph && data.graph.length > 0) {
+                if (confirm('Auto-saved graph found. Would you like to restore it?')) {
+                    loadGraphFromData(data);
+                    showAlert('Auto-saved graph restored', 'info');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load auto-saved data:', error);
+        }
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+            case 's':
+                e.preventDefault();
+                exportGraph();
+                break;
+            case 'e':
+                e.preventDefault();
+                if (validateGraph()) {
+                    executeCustomGraph();
+                }
+                break;
+            case 'z':
+                e.preventDefault();
+                if (graphOperations.length > 0) {
+                    graphOperations.pop();
+                    renderGraph();
+                    updateGraphStatistics();
+                    showAlert('Undid last operation', 'info');
+                }
+                break;
+            case 'Delete':
+                e.preventDefault();
+                clearGraph();
+                break;
+        }
+    }
+});
+
+// Real-time validation
+setInterval(function() {
+    updateGraphStatistics();
+}, 5000);
+
+// Tooltips for operation nodes
+document.addEventListener('mouseover', function(e) {
+    if (e.target.closest('.operation-node')) {
+        const operationId = e.target.closest('.operation-node').dataset.operationId;
+        const operation = graphOperations.find(op => op.id === operationId);
+        
+        if (operation) {
+            const config = operationConfigs[operation.type];
+            e.target.title = `${operation.type}: ${config.description}\nCost: ${config.cost}\nParameters: ${JSON.stringify(operation.parameters)}`;
+        }
+    }
+});
+
+// Context menu for operations
+document.addEventListener('contextmenu', function(e) {
+    const operationNode = e.target.closest('.operation-node');
+    if (operationNode) {
+        e.preventDefault();
+        
+        const operationId = operationNode.dataset.operationId;
+        const operation = graphOperations.find(op => op.id === operationId);
+        
+        if (operation) {
+            showOperationContextMenu(e.clientX, e.clientY, operation);
+        }
+    }
+});
+
+function showOperationContextMenu(x, y, operation) {
+    const existingMenu = document.getElementById('context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+    
+    const menu = document.createElement('div');
+    menu.id = 'context-menu';
+    menu.className = 'context-menu';
+    menu.style.cssText = `
+        position: fixed;
+        top: ${y}px;
+        left: ${x}px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        min-width: 150px;
+    `;
+    
+    menu.innerHTML = `
+        <div class="context-menu-item" onclick="selectOperation('${operation.id}')">
+            <i class="fas fa-edit me-2"></i>Edit Parameters
+        </div>
+        <div class="context-menu-item" onclick="duplicateOperation('${operation.id}')">
+            <i class="fas fa-copy me-2"></i>Duplicate
+        </div>
+        <div class="context-menu-item text-danger" onclick="removeOperation('${operation.id}', event)">
+            <i class="fas fa-trash me-2"></i>Delete
+        </div>
+    `;
+    
+    document.body.appendChild(menu);
+    
+    // Remove menu when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', function removeMenu() {
+            menu.remove();
+            document.removeEventListener('click', removeMenu);
+        });
+    }, 10);
+}
+
+function duplicateOperation(operationId) {
+    const operation = graphOperations.find(op => op.id === operationId);
+    if (operation) {
+        const newOperation = {
+            ...operation,
+            id: `${operation.type.toLowerCase()}_${Date.now()}`,
+            position: {
+                x: operation.position.x + 30,
+                y: operation.position.y + 30
+            }
+        };
+        
+        graphOperations.push(newOperation);
+        renderGraph();
+        updateGraphStatistics();
+        showAlert(`Duplicated ${operation.type} operation`, 'success');
+    }
+}
+
+// Add CSS for context menu
+const contextMenuCSS = `
+.context-menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.context-menu-item:hover {
+    background-color: #f8f9fa;
+}
+.context-menu-item:last-child {
+    border-bottom: none;
+}
+`;
+
+const style = document.createElement('style');
+style.textContent = contextMenuCSS;
+document.head.appendChild(style);
+
+// Initialize drag and drop for reordering
+let draggedOperation = null;
+
+function initializeOperationDrag() {
+    document.addEventListener('mousedown', function(e) {
+        const operationNode = e.target.closest('.operation-node');
+        if (operationNode && e.button === 0) { // Left mouse button
+            draggedOperation = operationNode.dataset.operationId;
+            operationNode.style.opacity = '0.7';
+            
+            const mouseMoveHandler = function(e) {
+                if (draggedOperation) {
+                    const operation = graphOperations.find(op => op.id === draggedOperation);
+                    if (operation) {
+                        const canvas = document.getElementById('graph-canvas');
+                        const rect = canvas.getBoundingClientRect();
+                        operation.position.x = e.clientX - rect.left - 60;
+                        operation.position.y = e.clientY - rect.top - 30;
+                        renderGraph();
+                    }
+                }
+            };
+            
+            const mouseUpHandler = function() {
+                if (draggedOperation) {
+                    const operationNode = document.querySelector(`[data-operation-id="${draggedOperation}"]`);
+                    if (operationNode) {
+                        operationNode.style.opacity = '1';
+                    }
+                    draggedOperation = null;
+                }
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+            
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        }
+    });
+}
+
+// Initialize operation dragging
+document.addEventListener('DOMContentLoaded', function() {
+    initializeOperationDrag();
+});
+
+// Performance monitoring
+function startPerformanceMonitoring() {
+    const startTime = performance.now();
+    let operationCount = 0;
+    
+    return {
+        recordOperation: function() {
+            operationCount++;
+        },
+        getMetrics: function() {
+            const elapsed = performance.now() - startTime;
+            return {
+                totalTime: elapsed,
+                operationsPerSecond: (operationCount / elapsed) * 1000,
+                averageOperationTime: elapsed / operationCount
+            };
+        }
+    };
+}
+
+// Advanced validation with detailed feedback
+function advancedValidation() {
+    const issues = [];
+    const warnings = [];
+    
+    // Check for common anti-patterns
+    const generateOps = graphOperations.filter(op => op.type === 'Generate');
+    const scoreOps = graphOperations.filter(op => op.type === 'Score');
+    
+    if (generateOps.length > scoreOps.length * 2) {
+        warnings.push('Consider adding more Score operations to evaluate generated thoughts');
+    }
+    
+    // Check for missing validation
+    const hasValidation = graphOperations.some(op => 
+        op.type === 'ValidateAndImprove' || op.type === 'KeepValid'
+    );
+    
+    if (!hasValidation && graphOperations.length > 3) {
+        warnings.push('Complex graphs should include validation steps');
+    }
+    
+    // Check for cost efficiency
+    const estimatedCost = calculateEstimatedCost();
+    if (estimatedCost > 5.0) {
+        warnings.push('High estimated cost - consider optimizing the graph');
+    }
+    
+    // Check for disconnected components
+    const visited = new Set();
+    function traverse(operationId) {
+        if (visited.has(operationId)) return;
+        visited.add(operationId);
+        
+        const operation = graphOperations.find(op => op.id === operationId);
+        if (operation) {
+            operation.predecessors.forEach(predId => traverse(predId));
+            graphOperations.filter(op => op.predecessors.includes(operationId))
+                           .forEach(successor => traverse(successor.id));
+        }
+    }
+    
+    if (graphOperations.length > 0) {
+        traverse(graphOperations[0].id);
+        const disconnected = graphOperations.filter(op => !visited.has(op.id));
+        
+        if (disconnected.length > 0) {
+            issues.push(`${disconnected.length} disconnected operations found`);
+        }
+    }
+    
+    return { issues, warnings };
+}
+
+// Enhanced validation function
+function validateGraph() {
+    const basicValidation = validateGraphStructure();
+    const { issues, warnings } = advancedValidation();
+    
+    let message = '';
+    
+    if (issues.length === 0 && warnings.length === 0) {
+        message = 'Graph validation passed successfully';
+        showAlert(message, 'success');
+    } else {
+        if (issues.length > 0) {
+            message += `Issues: ${issues.join(', ')}. `;
+        }
+        if (warnings.length > 0) {
+            message += `Warnings: ${warnings.join(', ')}`;
+        }
+        
+        const alertType = issues.length > 0 ? 'danger' : 'warning';
+        showAlert(message, alertType);
+    }
+    
+    return basicValidation && issues.length === 0;
+}
+
+console.log('Advanced GoT Configuration loaded successfully');
+</script>
+{% endblock %}

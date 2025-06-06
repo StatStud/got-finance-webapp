@@ -1,0 +1,38 @@
+Basel III Capital Requirements - Jurisdictional Analysis
+
+UNITED STATES - Federal Reserve Implementation
+Banks must maintain a minimum Common Equity Tier 1 (CET1) ratio of 4.5% of risk-weighted assets. Additionally, systemically important banks must maintain a capital conservation buffer of 2.5%, bringing the effective minimum to 7.0%. 
+
+The leverage ratio requirement is set at 3% for most banks, with an enhanced 5% requirement for the largest banking organizations. Banks must also maintain a minimum Tier 1 capital ratio of 6% and total capital ratio of 8%.
+
+Liquidity Coverage Ratio (LCR) must be at least 100%, requiring banks to hold sufficient high-quality liquid assets to survive a 30-day stress scenario. Net Stable Funding Ratio (NSFR) of 100% ensures stable funding for one year.
+
+EUROPEAN UNION - Capital Requirements Regulation (CRR)
+The EU implementation requires a CET1 ratio of 4.5%, with additional capital conservation buffer of 2.5%. Member states may impose additional systemic risk buffers up to 5% for systemically important institutions.
+
+The leverage ratio is set at 3% for all credit institutions. The EU has implemented a binding NSFR requirement of 100% and LCR requirement of 100%.
+
+Countercyclical capital buffers may range from 0% to 2.5%, depending on economic conditions and national discretion.
+
+UNITED KINGDOM - Prudential Regulation Authority (PRA)
+UK banks must maintain CET1 ratio of 4.5% plus capital conservation buffer of 2.5%. Additional systemic risk buffer of up to 3% may apply to systemically important firms.
+
+The UK has implemented a 3% leverage ratio requirement but has indicated it may increase this to 3.25% for major banks. A supplementary leverage ratio of 3.25% applies to ring-fenced banks.
+
+LCR and NSFR requirements mirror Basel III standards at 100% minimum.
+
+CANADA - Office of the Superintendent of Financial Institutions (OSFI)
+Canadian implementation sets CET1 minimum at 4.5% with additional buffers bringing effective minimum to 7%. OSFI has set the domestic stability buffer at 2.5% for systemically important banks.
+
+Leverage ratio requirement is 3%, with OSFI maintaining discretion to impose higher ratios on individual institutions based on risk assessment.
+
+SINGAPORE - Monetary Authority of Singapore (MAS)
+Singapore requires CET1 ratio of 6.5% for local banks, higher than the Basel III minimum. Total capital ratio must be at least 10%.
+
+The leverage ratio is set at 3% with additional requirements for systemically important banks. LCR and NSFR requirements are aligned with Basel III standards.
+
+KEY DIFFERENCES AND POTENTIAL CONFLICTS:
+1. CET1 ratios vary from 4.5% (base) to 6.5% (Singapore), creating competitive disparities
+2. Leverage ratio buffers differ significantly between jurisdictions  
+3. National discretion in applying systemic risk buffers creates regulatory arbitrage opportunities
+4. Implementation timelines vary, with some jurisdictions applying more conservative phase-in schedules
