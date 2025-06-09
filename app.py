@@ -394,17 +394,104 @@ def parse_risk_analysis_results(final_thoughts):
         thoughts = final_thoughts[0]
         if thoughts:
             latest_thought = thoughts[-1]
-            risk_factors = latest_thought.state.get('risk_factors', [])
             
-            # Ensure risk_factors is a list
-            if not isinstance(risk_factors, list):
-                logger.warning(f"Risk factors is not a list: {type(risk_factors)}")
+            # Get risk factors from the latest thought
+            risk_factors = latest_thought.state.get('risk_factors', [])
+            severity_scores = latest_thought.state.get('severity_scores', {})
+            ranked_risks = latest_thought.state.get('ranked_risks', [])
+            
+            # If risk_factors is empty but we have ranked_risks, reconstruct risk_factors
+            if not risk_factors and ranked_risks:
+                logger.info("Reconstructing risk_factors from ranked_risks")
                 risk_factors = []
+                for i, risk_name in enumerate(ranked_risks):
+                    # Try to get severity from severity_scores or use a default
+                    severity = severity_scores.get(risk_name, 7)  # Default severity of 7
+                    
+                    # Create a risk factor object
+                    risk_factor = {
+                        "factor": risk_name,
+                        "description": f"Risk factor identified: {risk_name}",
+                        "severity": severity,
+                        "category": "operational"  # Default category
+                    }
+                    risk_factors.append(risk_factor)
+                
+                # Update severity_scores if it was empty
+                if not severity_scores:
+                    severity_scores = {risk: 7 for risk in ranked_risks}
+            
+            # If we still don't have risk factors, try to parse from the 'current' field
+            if not risk_factors:
+                current_data = latest_thought.state.get('current', '')
+                if current_data:
+                    try:
+                        import json
+                        if isinstance(current_data, str):
+                            parsed_current = json.loads(current_data)
+                        else:
+                            parsed_current = current_data
+                        
+                        # Extract risk factors from the current data
+                        extracted_risks = parsed_current.get('risk_factors', [])
+                        if extracted_risks:
+                            risk_factors = extracted_risks
+                        elif parsed_current.get('consolidated_risks'):
+                            risk_factors = parsed_current['consolidated_risks']
+                        
+                        # Update severity scores
+                        for risk in risk_factors:
+                            if isinstance(risk, dict) and 'factor' in risk and 'severity' in risk:
+                                severity_scores[risk['factor']] = risk['severity']
+                                
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Could not parse current data as JSON: {e}")
+            
+            # Ensure risk_factors is a list and has proper structure
+            if not isinstance(risk_factors, list):
+                risk_factors = []
+            
+            # Validate and clean up risk factors
+            cleaned_risk_factors = []
+            for risk in risk_factors:
+                if isinstance(risk, dict):
+                    cleaned_risk = {
+                        "factor": risk.get('factor', 'Unknown Risk'),
+                        "description": risk.get('description', 'No description available'),
+                        "severity": risk.get('severity', 5),
+                        "category": risk.get('category', 'operational')
+                    }
+                    cleaned_risk_factors.append(cleaned_risk)
+                elif isinstance(risk, str):
+                    # Convert string to risk factor object
+                    cleaned_risk = {
+                        "factor": risk,
+                        "description": f"Risk factor: {risk}",
+                        "severity": severity_scores.get(risk, 5),
+                        "category": "operational"
+                    }
+                    cleaned_risk_factors.append(cleaned_risk)
+            
+            risk_factors = cleaned_risk_factors
+            
+            # If we still have no risk factors but have ranked risks, create them
+            if not risk_factors and ranked_risks:
+                risk_factors = [
+                    {
+                        "factor": risk_name,
+                        "description": f"Identified risk: {risk_name}",
+                        "severity": severity_scores.get(risk_name, 7),
+                        "category": "operational"
+                    }
+                    for risk_name in ranked_risks
+                ]
+            
+            logger.info(f"Parsed {len(risk_factors)} risk factors from GoT results")
             
             return {
                 'risk_factors': risk_factors,
-                'severity_scores': latest_thought.state.get('severity_scores', {}),
-                'ranked_risks': latest_thought.state.get('ranked_risks', []),
+                'severity_scores': severity_scores,
+                'ranked_risks': ranked_risks,
                 'execution_time': latest_thought.state.get('execution_time', 0),
                 'thought_count': len(thoughts)
             }
@@ -419,6 +506,7 @@ def parse_risk_analysis_results(final_thoughts):
         
     except Exception as e:
         logger.error(f"Error parsing risk analysis results: {e}")
+        logger.error(f"Final thoughts structure: {final_thoughts}")
         return {
             'error': f'Parse error: {str(e)}',
             'risk_factors': [],

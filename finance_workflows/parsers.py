@@ -213,27 +213,54 @@ class RiskAnalysisParser(FinanceBaseParser):
                                   for i, risk in enumerate(sorted(consolidated_risks, 
                                   key=lambda x: x.get('severity', 0), reverse=True))]
                 
+                # Also extract from any ranked_risks field that might exist
+                if not risk_ranking and 'ranked_risks' in parsed_data:
+                    risk_ranking = parsed_data['ranked_risks']
+                
+                # Create severity scores mapping
+                severity_scores = {}
+                for risk in consolidated_risks:
+                    if isinstance(risk, dict) and 'factor' in risk and 'severity' in risk:
+                        severity_scores[risk['factor']] = risk['severity']
+                
+                # If we have ranking but no detailed risk factors, create basic ones
+                if risk_ranking and not consolidated_risks:
+                    consolidated_risks = [
+                        {
+                            "factor": risk_name,
+                            "description": f"Risk factor: {risk_name}",
+                            "severity": 7,  # Default severity
+                            "category": "operational"
+                        }
+                        for risk_name in risk_ranking
+                    ]
+                    severity_scores = {risk: 7 for risk in risk_ranking}
+                
                 new_state = {
                     **base_state,
                     'current': json.dumps(parsed_data),
                     'risk_factors': consolidated_risks,
                     'ranked_risks': risk_ranking,
-                    'severity_scores': {
-                        risk.get('factor', f'Risk {i+1}'): risk.get('severity', 0) 
-                        for i, risk in enumerate(consolidated_risks)
-                        if isinstance(risk, dict)
-                    }
+                    'severity_scores': severity_scores
                 }
                 
                 new_states.append(new_state)
+                
+                logger.info(f"Aggregation parsed {len(consolidated_risks)} risk factors, {len(risk_ranking)} rankings")
+                
             except Exception as e:
                 logger.error(f"Error parsing aggregation answer: {e}")
-                # Return a basic error state
+                logger.error(f"Text content: {text[:200]}...")
+                
+                # Try to extract any risk-related information as fallback
+                fallback_risks = self._extract_risk_keywords(text)
+                
+                # Return a basic error state with any extracted risks
                 new_states.append({
-                    'current': '{"error": "Failed to parse aggregation"}',
-                    'risk_factors': [],
-                    'ranked_risks': [],
-                    'severity_scores': {}
+                    'current': f'{{"error": "Failed to parse aggregation", "fallback_risks": {fallback_risks}}}',
+                    'risk_factors': fallback_risks,
+                    'ranked_risks': [risk['factor'] for risk in fallback_risks],
+                    'severity_scores': {risk['factor']: risk['severity'] for risk in fallback_risks}
                 })
         
         return new_states
@@ -249,29 +276,111 @@ class RiskAnalysisParser(FinanceBaseParser):
                 # Extract risk factors
                 risk_factors = parsed_data.get('risk_factors', [])
                 
+                # Also check for other possible field names
+                if not risk_factors:
+                    risk_factors = parsed_data.get('risks', [])
+                if not risk_factors:
+                    risk_factors = parsed_data.get('consolidated_risks', [])
+                
+                # Create severity scores mapping
+                severity_scores = {}
+                for risk in risk_factors:
+                    if isinstance(risk, dict) and 'factor' in risk and 'severity' in risk:
+                        severity_scores[risk['factor']] = risk['severity']
+                
                 new_state = state.copy()
                 new_state.update({
                     'current': json.dumps(parsed_data),
                     'risk_factors': risk_factors,
-                    'severity_scores': {
-                        risk.get('factor', f'Risk {i+1}'): risk.get('severity', 0)
-                        for i, risk in enumerate(risk_factors) 
-                        if isinstance(risk, dict)
-                    }
+                    'severity_scores': severity_scores
                 })
                 
                 new_states.append(new_state)
+                
+                logger.info(f"Generation parsed {len(risk_factors)} risk factors")
+                
             except Exception as e:
                 logger.error(f"Error parsing generate answer: {e}")
+                logger.error(f"Text content: {text[:200]}...")
+                
+                # Try to extract any risk-related information as fallback
+                fallback_risks = self._extract_risk_keywords(text)
+                
                 # Return a basic error state
                 new_states.append({
                     **state,
-                    'current': '{"error": "Failed to parse generation"}',
-                    'risk_factors': [],
-                    'severity_scores': {}
+                    'current': f'{{"error": "Failed to parse generation", "fallback_risks": {fallback_risks}}}',
+                    'risk_factors': fallback_risks,
+                    'severity_scores': {risk['factor']: risk['severity'] for risk in fallback_risks}
                 })
         
         return new_states
+
+    def _extract_risk_keywords(self, text: str) -> List[Dict]:
+        """Extract risk factors using keyword matching as fallback."""
+        risk_keywords = [
+            'cybersecurity', 'cyber', 'security', 'data breach', 'hacking',
+            'regulatory', 'compliance', 'regulation', 'legal',
+            'market', 'credit', 'liquidity', 'financial',
+            'operational', 'technology', 'system', 'infrastructure',
+            'competitive', 'competition', 'market share',
+            'economic', 'recession', 'downturn', 'volatility',
+            'supply chain', 'vendor', 'third-party',
+            'reputation', 'brand', 'customer',
+            'interest rate', 'currency', 'foreign exchange'
+        ]
+        
+        found_risks = []
+        text_lower = text.lower()
+        
+        for keyword in risk_keywords:
+            if keyword in text_lower:
+                # Estimate severity based on context words
+                severity = 5  # Default
+                if any(word in text_lower for word in ['significant', 'major', 'critical', 'severe']):
+                    severity = 8
+                elif any(word in text_lower for word in ['high', 'substantial', 'important']):
+                    severity = 7
+                elif any(word in text_lower for word in ['moderate', 'medium']):
+                    severity = 6
+                elif any(word in text_lower for word in ['low', 'minor', 'minimal']):
+                    severity = 3
+                
+                found_risks.append({
+                    "factor": keyword.title() + " Risk",
+                    "description": f"Risk related to {keyword}",
+                    "severity": severity,
+                    "category": self._categorize_risk(keyword)
+                })
+        
+        # Remove duplicates and limit to top 10
+        seen = set()
+        unique_risks = []
+        for risk in found_risks:
+            if risk['factor'] not in seen:
+                seen.add(risk['factor'])
+                unique_risks.append(risk)
+                if len(unique_risks) >= 10:
+                    break
+        
+        return unique_risks
+
+    def _categorize_risk(self, keyword: str) -> str:
+        """Categorize risk based on keyword."""
+        categories = {
+            'operational': ['operational', 'technology', 'system', 'infrastructure', 'supply chain', 'vendor'],
+            'financial': ['market', 'credit', 'liquidity', 'financial', 'interest rate', 'currency'],
+            'regulatory': ['regulatory', 'compliance', 'regulation', 'legal'],
+            'strategic': ['competitive', 'competition', 'market share'],
+            'reputational': ['reputation', 'brand', 'customer'],
+            'technology': ['cybersecurity', 'cyber', 'security', 'data breach', 'hacking']
+        }
+        
+        for category, keywords in categories.items():
+            if any(kw in keyword.lower() for kw in keywords):
+                return category
+        
+        return 'operational'  # Default category
 
     def parse_improve_answer(self, state: Dict, texts: List[str]) -> Dict:
         """Parse improved risk analysis."""
@@ -282,13 +391,18 @@ class RiskAnalysisParser(FinanceBaseParser):
             text = texts[0]
             parsed_data = self.extract_json_from_text(text)
             
+            # Extract risk factors
+            risk_factors = parsed_data.get('risk_factors', [])
+            if not risk_factors:
+                risk_factors = parsed_data.get('consolidated_risks', [])
+            
             improved_state = state.copy()
             improved_state.update({
                 'current': json.dumps(parsed_data),
-                'risk_factors': parsed_data.get('risk_factors', []),
+                'risk_factors': risk_factors,
                 'severity_scores': {
                     risk.get('factor', f'Risk {i+1}'): risk.get('severity', 0)
-                    for i, risk in enumerate(parsed_data.get('risk_factors', []))
+                    for i, risk in enumerate(risk_factors)
                     if isinstance(risk, dict)
                 }
             })
