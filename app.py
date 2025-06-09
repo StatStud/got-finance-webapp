@@ -3,9 +3,11 @@ import os
 import json
 import datetime
 import logging
+import traceback
 from typing import Dict, List, Any
 import tempfile
 import uuid
+import time
 
 # GoT imports
 from finance_workflows.local_got import controller, operations
@@ -92,6 +94,9 @@ def get_workflows():
 @app.route('/api/execute', methods=['POST'])
 def execute_workflow():
     """Execute a GoT workflow for finance analysis."""
+    start_time = time.time()
+    session_id = None
+    
     try:
         data = request.get_json()
         workflow_id = data.get('workflow_id')
@@ -105,26 +110,64 @@ def execute_workflow():
         session_id = str(uuid.uuid4())
         session['session_id'] = session_id
         
-        # Initialize language model
-        lm = CerebrasLLM()
+        logger.info(f"Starting workflow execution: {workflow_id} (session: {session_id})")
+        
+        # Initialize language model with error handling
+        try:
+            lm = CerebrasLLM()
+            logger.info("Successfully initialized Cerebras LLM")
+        except Exception as e:
+            logger.error(f"Failed to initialize LLM: {e}")
+            return jsonify({'error': f'Failed to initialize language model: {str(e)}'}), 500
         
         # Execute workflow based on type
-        if workflow_id == 'risk_analysis':
-            result = execute_risk_analysis(lm, inputs, config, session_id)
-        elif workflow_id == 'document_merge':
-            result = execute_document_merge(lm, inputs, config, session_id)
-        elif workflow_id == 'compliance_analysis':
-            result = execute_compliance_analysis(lm, inputs, config, session_id)
-        elif workflow_id == 'financial_metrics':
-            result = execute_financial_metrics(lm, inputs, config, session_id)
-        else:
-            return jsonify({'error': 'Unknown workflow'}), 400
+        try:
+            if workflow_id == 'risk_analysis':
+                result = execute_risk_analysis(lm, inputs, config, session_id)
+            elif workflow_id == 'document_merge':
+                result = execute_document_merge(lm, inputs, config, session_id)
+            elif workflow_id == 'compliance_analysis':
+                result = execute_compliance_analysis(lm, inputs, config, session_id)
+            elif workflow_id == 'financial_metrics':
+                result = execute_financial_metrics(lm, inputs, config, session_id)
+            else:
+                return jsonify({'error': 'Unknown workflow'}), 400
+                
+            # Add execution time to result
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
             
-        return jsonify(result)
+            logger.info(f"Workflow completed successfully: {workflow_id} (time: {execution_time:.2f}s)")
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"Workflow execution failed: {workflow_id} - {str(e)}")
+            logger.error(traceback.format_exc())
+            
+            # Return a structured error response
+            execution_time = time.time() - start_time
+            return jsonify({
+                'error': str(e),
+                'workflow': workflow_id,
+                'session_id': session_id,
+                'execution_time': execution_time,
+                'cost': format_currency(0.0),
+                'results': {
+                    'error': str(e),
+                    'thought_count': 0
+                }
+            }), 500
         
     except Exception as e:
-        logger.error(f"Workflow execution error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Request processing error: {str(e)}")
+        logger.error(traceback.format_exc())
+        
+        execution_time = time.time() - start_time
+        return jsonify({
+            'error': f'Request processing failed: {str(e)}',
+            'session_id': session_id,
+            'execution_time': execution_time
+        }), 500
 
 def execute_risk_analysis(lm, inputs, config, session_id):
     """Execute risk analysis workflow using GoT."""
@@ -132,42 +175,51 @@ def execute_risk_analysis(lm, inputs, config, session_id):
     if not documents:
         raise ValueError("Documents required for risk analysis")
     
-    # Create Graph of Operations for risk analysis
-    operations_graph = workflows.create_risk_analysis_graph()
+    logger.info(f"Risk analysis: processing {len(documents)} documents")
     
-    # Initialize controller
-    ctrl = controller.Controller(
-        lm,
-        operations_graph,
-        RiskAnalysisPrompter(),
-        RiskAnalysisParser(),
-        {
-            'documents': documents,
+    try:
+        # Create Graph of Operations for risk analysis
+        operations_graph = workflows.create_risk_analysis_graph()
+        
+        # Initialize controller with better error handling
+        ctrl = controller.Controller(
+            lm,
+            operations_graph,
+            RiskAnalysisPrompter(),
+            RiskAnalysisParser(),
+            {
+                'documents': documents,
+                'session_id': session_id,
+                'method': 'got_risk',
+                'current': '',
+                'risk_factors': [],
+                'severity_scores': {}
+            }
+        )
+        
+        # Execute workflow
+        logger.info("Starting GoT execution for risk analysis")
+        ctrl.run()
+        logger.info("GoT execution completed for risk analysis")
+        
+        # Get results
+        final_thoughts = ctrl.get_final_thoughts()
+        results = parse_risk_analysis_results(final_thoughts)
+        
+        # Save results
+        save_session_results(session_id, 'risk_analysis', results, lm.cost)
+        
+        return {
             'session_id': session_id,
-            'method': 'got_risk',
-            'current': '',
-            'risk_factors': [],
-            'severity_scores': {}
+            'workflow': 'risk_analysis',
+            'results': results,
+            'cost': format_currency(lm.cost),
+            'execution_time': results.get('execution_time', 0)
         }
-    )
-    
-    # Execute workflow
-    ctrl.run()
-    
-    # Get results
-    final_thoughts = ctrl.get_final_thoughts()
-    results = parse_risk_analysis_results(final_thoughts)
-    
-    # Save results
-    save_session_results(session_id, 'risk_analysis', results, lm.cost)
-    
-    return {
-        'session_id': session_id,
-        'workflow': 'risk_analysis',
-        'results': results,
-        'cost': format_currency(lm.cost),
-        'execution_time': results.get('execution_time', 0)
-    }
+        
+    except Exception as e:
+        logger.error(f"Risk analysis execution failed: {e}")
+        raise
 
 def execute_document_merge(lm, inputs, config, session_id):
     """Execute document merge workflow using GoT."""
@@ -175,42 +227,51 @@ def execute_document_merge(lm, inputs, config, session_id):
     if not documents:
         raise ValueError("Documents required for document merge")
     
-    # Create Graph of Operations for document merging
-    operations_graph = workflows.create_document_merge_graph()
+    logger.info(f"Document merge: processing {len(documents)} documents")
     
-    # Initialize controller
-    ctrl = controller.Controller(
-        lm,
-        operations_graph,
-        DocumentMergePrompter(),
-        DocumentMergeParser(),
-        {
-            'documents': documents,
+    try:
+        # Create Graph of Operations for document merging
+        operations_graph = workflows.create_document_merge_graph()
+        
+        # Initialize controller
+        ctrl = controller.Controller(
+            lm,
+            operations_graph,
+            DocumentMergePrompter(),
+            DocumentMergeParser(),
+            {
+                'documents': documents,
+                'session_id': session_id,
+                'method': 'got_merge',
+                'current': '',
+                'themes': [],
+                'parts': set()
+            }
+        )
+        
+        # Execute workflow
+        logger.info("Starting GoT execution for document merge")
+        ctrl.run()
+        logger.info("GoT execution completed for document merge")
+        
+        # Get results
+        final_thoughts = ctrl.get_final_thoughts()
+        results = parse_document_merge_results(final_thoughts)
+        
+        # Save results
+        save_session_results(session_id, 'document_merge', results, lm.cost)
+        
+        return {
             'session_id': session_id,
-            'method': 'got_merge',
-            'current': '',
-            'themes': [],
-            'parts': set()
+            'workflow': 'document_merge',
+            'results': results,
+            'cost': format_currency(lm.cost),
+            'execution_time': results.get('execution_time', 0)
         }
-    )
-    
-    # Execute workflow
-    ctrl.run()
-    
-    # Get results
-    final_thoughts = ctrl.get_final_thoughts()
-    results = parse_document_merge_results(final_thoughts)
-    
-    # Save results
-    save_session_results(session_id, 'document_merge', results, lm.cost)
-    
-    return {
-        'session_id': session_id,
-        'workflow': 'document_merge',
-        'results': results,
-        'cost': format_currency(lm.cost),
-        'execution_time': results.get('execution_time', 0)
-    }
+        
+    except Exception as e:
+        logger.error(f"Document merge execution failed: {e}")
+        raise
 
 def execute_compliance_analysis(lm, inputs, config, session_id):
     """Execute compliance analysis workflow using GoT."""
@@ -218,42 +279,51 @@ def execute_compliance_analysis(lm, inputs, config, session_id):
     if not regulatory_texts:
         raise ValueError("Regulatory texts required for compliance analysis")
     
-    # Create Graph of Operations for compliance analysis
-    operations_graph = workflows.create_compliance_analysis_graph()
+    logger.info(f"Compliance analysis: processing {len(regulatory_texts)} regulatory texts")
     
-    # Initialize controller
-    ctrl = controller.Controller(
-        lm,
-        operations_graph,
-        ComplianceAnalysisPrompter(),
-        ComplianceAnalysisParser(),
-        {
-            'regulatory_texts': regulatory_texts,
+    try:
+        # Create Graph of Operations for compliance analysis
+        operations_graph = workflows.create_compliance_analysis_graph()
+        
+        # Initialize controller
+        ctrl = controller.Controller(
+            lm,
+            operations_graph,
+            ComplianceAnalysisPrompter(),
+            ComplianceAnalysisParser(),
+            {
+                'regulatory_texts': regulatory_texts,
+                'session_id': session_id,
+                'method': 'got_compliance',
+                'current': '',
+                'requirements': [],
+                'conflicts': []
+            }
+        )
+        
+        # Execute workflow
+        logger.info("Starting GoT execution for compliance analysis")
+        ctrl.run()
+        logger.info("GoT execution completed for compliance analysis")
+        
+        # Get results
+        final_thoughts = ctrl.get_final_thoughts()
+        results = parse_compliance_results(final_thoughts)
+        
+        # Save results
+        save_session_results(session_id, 'compliance_analysis', results, lm.cost)
+        
+        return {
             'session_id': session_id,
-            'method': 'got_compliance',
-            'current': '',
-            'requirements': [],
-            'conflicts': []
+            'workflow': 'compliance_analysis',
+            'results': results,
+            'cost': format_currency(lm.cost),
+            'execution_time': results.get('execution_time', 0)
         }
-    )
-    
-    # Execute workflow
-    ctrl.run()
-    
-    # Get results
-    final_thoughts = ctrl.get_final_thoughts()
-    results = parse_compliance_results(final_thoughts)
-    
-    # Save results
-    save_session_results(session_id, 'compliance_analysis', results, lm.cost)
-    
-    return {
-        'session_id': session_id,
-        'workflow': 'compliance_analysis',
-        'results': results,
-        'cost': format_currency(lm.cost),
-        'execution_time': results.get('execution_time', 0)
-    }
+        
+    except Exception as e:
+        logger.error(f"Compliance analysis execution failed: {e}")
+        raise
 
 def execute_financial_metrics(lm, inputs, config, session_id):
     """Execute financial metrics comparison workflow using GoT."""
@@ -261,111 +331,227 @@ def execute_financial_metrics(lm, inputs, config, session_id):
     if not financial_data:
         raise ValueError("Financial data required for metrics analysis")
     
-    # Create Graph of Operations for financial metrics
-    operations_graph = workflows.create_financial_metrics_graph()
+    logger.info(f"Financial metrics: processing {len(financial_data)} data points")
     
-    # Initialize controller
-    ctrl = controller.Controller(
-        lm,
-        operations_graph,
-        FinancialMetricsPrompter(),
-        FinancialMetricsParser(),
-        {
-            'financial_data': financial_data,
+    try:
+        # Create Graph of Operations for financial metrics
+        operations_graph = workflows.create_financial_metrics_graph()
+        
+        # Initialize controller
+        ctrl = controller.Controller(
+            lm,
+            operations_graph,
+            FinancialMetricsPrompter(),
+            FinancialMetricsParser(),
+            {
+                'financial_data': financial_data,
+                'session_id': session_id,
+                'method': 'got_metrics',
+                'current': '',
+                'metrics': [],
+                'rankings': []
+            }
+        )
+        
+        # Execute workflow
+        logger.info("Starting GoT execution for financial metrics")
+        ctrl.run()
+        logger.info("GoT execution completed for financial metrics")
+        
+        # Get results
+        final_thoughts = ctrl.get_final_thoughts()
+        results = parse_financial_metrics_results(final_thoughts)
+        
+        # Save results
+        save_session_results(session_id, 'financial_metrics', results, lm.cost)
+        
+        return {
             'session_id': session_id,
-            'method': 'got_metrics',
-            'current': '',
-            'metrics': [],
-            'rankings': []
+            'workflow': 'financial_metrics',
+            'results': results,
+            'cost': format_currency(lm.cost),
+            'execution_time': results.get('execution_time', 0)
         }
-    )
-    
-    # Execute workflow
-    ctrl.run()
-    
-    # Get results
-    final_thoughts = ctrl.get_final_thoughts()
-    results = parse_financial_metrics_results(final_thoughts)
-    
-    # Save results
-    save_session_results(session_id, 'financial_metrics', results, lm.cost)
-    
-    return {
-        'session_id': session_id,
-        'workflow': 'financial_metrics',
-        'results': results,
-        'cost': format_currency(lm.cost),
-        'execution_time': results.get('execution_time', 0)
-    }
+        
+    except Exception as e:
+        logger.error(f"Financial metrics execution failed: {e}")
+        raise
 
 def parse_risk_analysis_results(final_thoughts):
     """Parse risk analysis results from GoT execution."""
-    if not final_thoughts or not final_thoughts[0]:
-        return {'error': 'No results generated'}
-    
-    # Extract risk factors and severity scores
-    thoughts = final_thoughts[0]
-    if thoughts:
-        latest_thought = thoughts[-1]
+    try:
+        if not final_thoughts or not final_thoughts[0]:
+            logger.warning("No final thoughts generated for risk analysis")
+            return {
+                'error': 'No results generated',
+                'risk_factors': [],
+                'severity_scores': {},
+                'ranked_risks': [],
+                'thought_count': 0
+            }
+        
+        # Extract risk factors and severity scores
+        thoughts = final_thoughts[0]
+        if thoughts:
+            latest_thought = thoughts[-1]
+            risk_factors = latest_thought.state.get('risk_factors', [])
+            
+            # Ensure risk_factors is a list
+            if not isinstance(risk_factors, list):
+                logger.warning(f"Risk factors is not a list: {type(risk_factors)}")
+                risk_factors = []
+            
+            return {
+                'risk_factors': risk_factors,
+                'severity_scores': latest_thought.state.get('severity_scores', {}),
+                'ranked_risks': latest_thought.state.get('ranked_risks', []),
+                'execution_time': latest_thought.state.get('execution_time', 0),
+                'thought_count': len(thoughts)
+            }
+        
         return {
-            'risk_factors': latest_thought.state.get('risk_factors', []),
-            'severity_scores': latest_thought.state.get('severity_scores', {}),
-            'ranked_risks': latest_thought.state.get('ranked_risks', []),
-            'execution_time': latest_thought.state.get('execution_time', 0),
-            'thought_count': len(thoughts)
+            'error': 'Failed to parse results',
+            'risk_factors': [],
+            'severity_scores': {},
+            'ranked_risks': [],
+            'thought_count': 0
         }
-    return {'error': 'Failed to parse results'}
+        
+    except Exception as e:
+        logger.error(f"Error parsing risk analysis results: {e}")
+        return {
+            'error': f'Parse error: {str(e)}',
+            'risk_factors': [],
+            'severity_scores': {},
+            'ranked_risks': [],
+            'thought_count': 0
+        }
 
 def parse_document_merge_results(final_thoughts):
     """Parse document merge results from GoT execution."""
-    if not final_thoughts or not final_thoughts[0]:
-        return {'error': 'No results generated'}
-    
-    thoughts = final_thoughts[0]
-    if thoughts:
-        latest_thought = thoughts[-1]
+    try:
+        if not final_thoughts or not final_thoughts[0]:
+            logger.warning("No final thoughts generated for document merge")
+            return {
+                'error': 'No results generated',
+                'merged_document': '',
+                'themes': [],
+                'theme_frequencies': {},
+                'thought_count': 0
+            }
+        
+        thoughts = final_thoughts[0]
+        if thoughts:
+            latest_thought = thoughts[-1]
+            return {
+                'merged_document': latest_thought.state.get('current', ''),
+                'themes': latest_thought.state.get('themes', []),
+                'theme_frequencies': latest_thought.state.get('theme_frequencies', {}),
+                'execution_time': latest_thought.state.get('execution_time', 0),
+                'thought_count': len(thoughts)
+            }
+        
         return {
-            'merged_document': latest_thought.state.get('current', ''),
-            'themes': latest_thought.state.get('themes', []),
-            'theme_frequencies': latest_thought.state.get('theme_frequencies', {}),
-            'execution_time': latest_thought.state.get('execution_time', 0),
-            'thought_count': len(thoughts)
+            'error': 'Failed to parse results',
+            'merged_document': '',
+            'themes': [],
+            'theme_frequencies': {},
+            'thought_count': 0
         }
-    return {'error': 'Failed to parse results'}
+        
+    except Exception as e:
+        logger.error(f"Error parsing document merge results: {e}")
+        return {
+            'error': f'Parse error: {str(e)}',
+            'merged_document': '',
+            'themes': [],
+            'theme_frequencies': {},
+            'thought_count': 0
+        }
 
 def parse_compliance_results(final_thoughts):
     """Parse compliance analysis results from GoT execution."""
-    if not final_thoughts or not final_thoughts[0]:
-        return {'error': 'No results generated'}
-    
-    thoughts = final_thoughts[0]
-    if thoughts:
-        latest_thought = thoughts[-1]
+    try:
+        if not final_thoughts or not final_thoughts[0]:
+            logger.warning("No final thoughts generated for compliance analysis")
+            return {
+                'error': 'No results generated',
+                'requirements': [],
+                'conflicts': [],
+                'compliance_matrix': {},
+                'thought_count': 0
+            }
+        
+        thoughts = final_thoughts[0]
+        if thoughts:
+            latest_thought = thoughts[-1]
+            return {
+                'requirements': latest_thought.state.get('requirements', []),
+                'conflicts': latest_thought.state.get('conflicts', []),
+                'compliance_matrix': latest_thought.state.get('compliance_matrix', {}),
+                'execution_time': latest_thought.state.get('execution_time', 0),
+                'thought_count': len(thoughts)
+            }
+        
         return {
-            'requirements': latest_thought.state.get('requirements', []),
-            'conflicts': latest_thought.state.get('conflicts', []),
-            'compliance_matrix': latest_thought.state.get('compliance_matrix', {}),
-            'execution_time': latest_thought.state.get('execution_time', 0),
-            'thought_count': len(thoughts)
+            'error': 'Failed to parse results',
+            'requirements': [],
+            'conflicts': [],
+            'compliance_matrix': {},
+            'thought_count': 0
         }
-    return {'error': 'Failed to parse results'}
+        
+    except Exception as e:
+        logger.error(f"Error parsing compliance results: {e}")
+        return {
+            'error': f'Parse error: {str(e)}',
+            'requirements': [],
+            'conflicts': [],
+            'compliance_matrix': {},
+            'thought_count': 0
+        }
 
 def parse_financial_metrics_results(final_thoughts):
     """Parse financial metrics results from GoT execution."""
-    if not final_thoughts or not final_thoughts[0]:
-        return {'error': 'No results generated'}
-    
-    thoughts = final_thoughts[0]
-    if thoughts:
-        latest_thought = thoughts[-1]
+    try:
+        if not final_thoughts or not final_thoughts[0]:
+            logger.warning("No final thoughts generated for financial metrics")
+            return {
+                'error': 'No results generated',
+                'metrics': [],
+                'rankings': [],
+                'comparative_analysis': {},
+                'thought_count': 0
+            }
+        
+        thoughts = final_thoughts[0]
+        if thoughts:
+            latest_thought = thoughts[-1]
+            return {
+                'metrics': latest_thought.state.get('metrics', []),
+                'rankings': latest_thought.state.get('rankings', []),
+                'comparative_analysis': latest_thought.state.get('comparative_analysis', {}),
+                'execution_time': latest_thought.state.get('execution_time', 0),
+                'thought_count': len(thoughts)
+            }
+        
         return {
-            'metrics': latest_thought.state.get('metrics', []),
-            'rankings': latest_thought.state.get('rankings', []),
-            'comparative_analysis': latest_thought.state.get('comparative_analysis', {}),
-            'execution_time': latest_thought.state.get('execution_time', 0),
-            'thought_count': len(thoughts)
+            'error': 'Failed to parse results',
+            'metrics': [],
+            'rankings': [],
+            'comparative_analysis': {},
+            'thought_count': 0
         }
-    return {'error': 'Failed to parse results'}
+        
+    except Exception as e:
+        logger.error(f"Error parsing financial metrics results: {e}")
+        return {
+            'error': f'Parse error: {str(e)}',
+            'metrics': [],
+            'rankings': [],
+            'comparative_analysis': {},
+            'thought_count': 0
+        }
 
 def save_session_results(session_id, workflow_type, results, cost):
     """Save session results to file."""
@@ -420,6 +606,23 @@ def health_check():
         'timestamp': datetime.datetime.now().isoformat(),
         'got_version': '0.0.3'  # From the GoT repository
     })
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle internal server errors."""
+    logger.error(f"Internal server error: {error}")
+    return jsonify({
+        'error': 'Internal server error',
+        'message': 'An unexpected error occurred. Please try again.'
+    }), 500
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handle not found errors."""
+    return jsonify({
+        'error': 'Not found',
+        'message': 'The requested resource was not found.'
+    }), 404
 
 if __name__ == '__main__':
     # Ensure data directories exist
