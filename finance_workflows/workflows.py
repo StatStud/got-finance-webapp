@@ -6,6 +6,7 @@ Creates sophisticated reasoning graphs for financial analysis tasks.
 #from graph_of_thoughts import operations
 from .local_got import operations
 from functools import partial
+from finance_workflows.enhanced_operations import create_enhanced_risk_analysis_graph
 
 
 class FinanceWorkflows:
@@ -18,6 +19,7 @@ class FinanceWorkflows:
         
         Uses GoT pattern: Split documents -> Extract risks -> Score -> Aggregate -> Improve
         """
+        return create_enhanced_risk_analysis_graph()
         operations_graph = operations.GraphOfOperations()
         
         # Step 1: Generate initial risk extractions from documents (multiple attempts)
