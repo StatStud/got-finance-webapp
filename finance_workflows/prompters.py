@@ -5,6 +5,12 @@ for financial analysis tasks.
 """
 
 from typing import Dict, List
+import os
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+got_path = os.path.join(project_root, 'graph-of-thoughts')
+sys.path.insert(0, got_path)
 from graph_of_thoughts.prompter.prompter import Prompter
 
 
